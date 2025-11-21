@@ -73,11 +73,12 @@
         div.style.borderRadius = "6px";
 
         div.innerHTML = `
-          <strong>${data.projectName}</strong><br>
-          Project ID: ${doc.id}<br>
-          Customer: ${data.customerId}<br>
-          Status: ${data.status}<br>
-        `;
+  <strong>${data.projectName}</strong><br>
+  Project ID: ${doc.id}<br>
+  Customer: ${data.customerId}<br>
+  Status: ${data.status}<br><br>
+  <button onclick="managePhases('${doc.id}')">Manage Phases</button>
+`;
 
         list.appendChild(div);
       });
