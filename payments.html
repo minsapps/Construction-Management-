@@ -8,17 +8,18 @@
 <body>
 
   <div class="navbar">
-    Construction Management App - Payments
+    Construction Management App — Payments
   </div>
 
-  <h1>Project Payments</h1>
+  <h1>Manage Payments</h1>
 
   <div class="card">
     <h2>Add Payment</h2>
-    <input id="amount" placeholder="Amount">
+    <input id="amount" type="number" placeholder="Payment Amount (e.g., 5000)">
+    <label>Date:</label>
     <input id="date" type="date">
     <button id="addPaymentBtn">Add Payment</button>
-    <p id="result"></p>
+    <p id="paymentStatus"></p>
   </div>
 
   <div class="card">
@@ -28,21 +29,30 @@
 
   <button id="backBtn">Back</button>
 
-  <br><br><br>
+  <div class="page-end"></div>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+
+    /* ---------------------------------------------------------
+       FIREBASE IMPORTS
+    --------------------------------------------------------- */
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
     import {
       getAuth,
       onAuthStateChanged
-    } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
     import {
       getFirestore,
       collection,
       addDoc,
       getDocs
-    } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+    /* ---------------------------------------------------------
+       FIREBASE INIT
+    --------------------------------------------------------- */
     const firebaseConfig = {
       apiKey: "AIzaSyB0Rj0mJmvfG_iK6ZGTl_UgiTCv8J_Y1Dv0",
       authDomain: "construction-management-f48cb.firebaseapp.com",
@@ -56,65 +66,91 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    /* ---------------------------------------------------------
+       URL PARAM
+    --------------------------------------------------------- */
     const url = new URL(window.location.href);
     const projectId = url.searchParams.get("projectId");
 
+    if (!projectId) {
+      alert("Missing projectId in URL");
+      window.location.href = "admin.html";
+    }
+
+    /* ---------------------------------------------------------
+       LOAD PAYMENTS
+    --------------------------------------------------------- */
+    async function loadPayments() {
+      const container = document.getElementById("paymentList");
+      container.innerHTML = "";
+
+      const snap = await getDocs(
+        collection(db, "projects", projectId, "payments")
+      );
+
+      if (snap.empty) {
+        container.innerHTML = "No payments recorded yet.";
+        return;
+      }
+
+      snap.forEach(docSnap => {
+        const p = docSnap.data();
+
+        const div = document.createElement("div");
+        div.className = "card";
+
+        div.innerHTML = `
+          <strong>$${p.amount}</strong><br>
+          Date: ${p.date}<br>
+        `;
+
+        container.appendChild(div);
+      });
+    }
+
+    /* ---------------------------------------------------------
+       ADD PAYMENT
+    --------------------------------------------------------- */
     async function addPayment() {
-      const amount = Number(document.getElementById("amount").value);
+      const amount = document.getElementById("amount").value;
       const date = document.getElementById("date").value;
 
       if (!amount || !date) {
-        alert("Enter amount and date.");
+        alert("Both amount and date are required.");
         return;
       }
 
       await addDoc(
         collection(db, "projects", projectId, "payments"),
         {
-          amount,
-          date,
-          addedBy: (auth.currentUser ? auth.currentUser.uid : null)
+          amount: Number(amount),
+          date: date,
+          timestamp: new Date().toISOString()
         }
       );
 
-      document.getElementById("result").textContent = "Payment added.";
+      document.getElementById("paymentStatus").innerHTML = "Payment added!";
       loadPayments();
     }
 
-    async function loadPayments() {
-      const list = document.getElementById("paymentList");
-      list.innerHTML = "";
-
-      const snap = await getDocs(
-        collection(db, "projects", projectId, "payments")
-      );
-
-      snap.forEach(docSnap => {
-        const p = docSnap.data();
-        const div = document.createElement("div");
-        div.className = "card";
-        div.innerHTML = `
-          Amount: $${p.amount}<br>
-          Date: ${p.date}<br>
-        `;
-        list.appendChild(div);
-      });
-
-      if (snap.empty) {
-        list.textContent = "No payments yet.";
-      }
-    }
-
-    document.getElementById("addPaymentBtn").addEventListener("click", addPayment);
-    document.getElementById("backBtn").addEventListener("click", () => window.history.back());
-
-    onAuthStateChanged(auth, (user) => {
+    /* ---------------------------------------------------------
+       AUTH GUARD
+    --------------------------------------------------------- */
+    onAuthStateChanged(auth, user => {
       if (!user) {
         window.location.href = "index.html";
         return;
       }
+
       loadPayments();
     });
+
+    /* ---------------------------------------------------------
+       EVENTS
+    --------------------------------------------------------- */
+    document.getElementById("addPaymentBtn").addEventListener("click", addPayment);
+    document.getElementById("backBtn").addEventListener("click", () => window.history.back());
+
   </script>
 
 </body>
