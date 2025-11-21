@@ -1,13 +1,14 @@
 <body>
-  <h1>Contractor Dashboard</h1>
+  <h1>Customer Dashboard</h1>
 
-  <h2>Your Assigned Phases</h2>
-  <div id="phaseList">Loading...</div>
+  <h2>Your Project</h2>
+  <div id="projectBox">Loading...</div>
 
-  <h2>Upload Daily Photo</h2>
-  <input type="file" id="photoFile">
-  <button onclick="uploadPhoto()">Upload</button>
-  <p id="uploadStatus"></p>
+  <h2>Project Photos</h2>
+  <div id="photoGallery">Loading...</div>
+
+  <h2>Your Payments</h2>
+  <div id="paymentList">Loading...</div>
 
   <br><br>
   <button onclick="logout()">Logout</button>
@@ -15,93 +16,109 @@
   <script type="module">
     import { signOut } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
     import {
-      collection, getDocs, query, where, addDoc
+      collection, doc, getDoc, getDocs, query, where
     } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
-    import {
-      ref, uploadBytes, getDownloadURL
-    } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-storage.js";
 
     async function logout() {
       await signOut(window.auth);
       window.location.href = "index.html";
     }
 
-    let assignedPhases = [];
-    let currentPhaseId = null;
-    let currentProjectId = null;
+    let projectId = null;
 
-    // Load contractor phases
-    async function loadPhases() {
+    // Load customer's assigned project
+    async function loadProject() {
       const user = window.auth.currentUser;
 
-      const phaseList = document.getElementById("phaseList");
-      phaseList.innerHTML = "";
+      const projectsSnap = await getDocs(
+        query(
+          collection(window.db, "projects"),
+          where("customerId", "==", user.uid)
+        )
+      );
 
-      // Search all projects → all phases where assignedTo = user.uid
-      const projectsSnap = await getDocs(collection(window.db, "projects"));
+      let projectData = null;
 
-      projectsSnap.forEach(async (projectDoc) => {
-        const projectId = projectDoc.id;
+      projectsSnap.forEach(doc => {
+        projectId = doc.id;
+        projectData = doc.data();
+      });
 
-        const phasesSnap = await getDocs(
-          query(
-            collection(window.db, "projects", projectId, "phases"),
-            where("assignedTo", "==", user.uid)
-          )
+      const box = document.getElementById("projectBox");
+
+      if (!projectData) {
+        box.innerHTML = "No project found.";
+        return;
+      }
+
+      box.innerHTML = `
+        <strong>${projectData.projectName}</strong><br>
+        Status: ${projectData.status}<br>
+        Start Date: ${projectData.startDate}<br>
+      `;
+
+      loadPhotos();
+      loadPayments();
+    }
+
+    // Load project photos
+    async function loadPhotos() {
+      const gallery = document.getElementById("photoGallery");
+      gallery.innerHTML = "";
+
+      const phasesSnap = await getDocs(
+        collection(window.db, "projects", projectId, "phases")
+      );
+
+      phasesSnap.forEach(async (phaseDoc) => {
+        const phaseId = phaseDoc.id;
+
+        const photosSnap = await getDocs(
+          collection(window.db, "projects", projectId, "phases", phaseId, "photos")
         );
 
-        phasesSnap.forEach(phaseDoc => {
-          const data = phaseDoc.data();
+        photosSnap.forEach(photoDoc => {
+          const url = photoDoc.data().url;
 
-          const div = document.createElement("div");
-          div.style.background = "#eee";
-          div.style.padding = "10px";
-          div.style.margin = "10px 0";
-          div.style.borderRadius = "6px";
-          div.style.cursor = "pointer";
+          const img = document.createElement("img");
+          img.src = url;
+          img.style.width = "120px";
+          img.style.margin = "5px";
+          img.style.borderRadius = "6px";
+          img.style.border = "1px solid #ccc";
 
-          div.innerHTML = `
-            <strong>${data.phaseName}</strong><br>
-            Due: ${data.dueDate}<br>
-            Status: ${data.status}
-          `;
-
-          div.onclick = () => {
-            currentPhaseId = phaseDoc.id;
-            currentProjectId = projectId;
-          };
-
-          phaseList.appendChild(div);
+          gallery.appendChild(img);
         });
       });
     }
 
-    loadPhases();
+    // Load customer payments
+    async function loadPayments() {
+      const list = document.getElementById("paymentList");
+      list.innerHTML = "";
 
-    // Upload daily photo
-    async function uploadPhoto() {
-      if (!currentPhaseId || !currentProjectId) {
-        alert("Select a phase first.");
-        return;
-      }
-
-      const file = document.getElementById("photoFile").files[0];
-      if (!file) {
-        alert("Choose a photo first.");
-        return;
-      }
-
-      const storageRef = ref(window.storage, `photos/${currentProjectId}/${currentPhaseId}/${file.name}`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-
-      // Save photo URL
-      await addDoc(
-        collection(window.db, "projects", currentProjectId, "phases", currentPhaseId, "photos"),
-        { url, timestamp: new Date().toISOString() }
+      const paymentsSnap = await getDocs(
+        collection(window.db, "projects", projectId, "payments")
       );
 
-      document.getElementById("uploadStatus").innerText = "Photo uploaded!";
+      paymentsSnap.forEach(doc => {
+        const p = doc.data();
+
+        const div = document.createElement("div");
+        div.style.background = "#eee";
+        div.style.padding = "10px";
+        div.style.margin = "10px 0";
+        div.style.borderRadius = "6px";
+
+        div.innerHTML = `
+          Amount: $${p.amount}<br>
+          Date: ${p.date}<br>
+        `;
+
+        list.appendChild(div);
+      });
     }
+
+    loadProject();
   </script>
 </body>
