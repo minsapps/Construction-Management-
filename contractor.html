@@ -1,25 +1,107 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Contractor Dashboard</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-
 <body>
   <h1>Contractor Dashboard</h1>
-  <p>Welcome, Contractor!</p>
 
-  <div>
-    <button onclick="logout()">Logout</button>
-  </div>
+  <h2>Your Assigned Phases</h2>
+  <div id="phaseList">Loading...</div>
+
+  <h2>Upload Daily Photo</h2>
+  <input type="file" id="photoFile">
+  <button onclick="uploadPhoto()">Upload</button>
+  <p id="uploadStatus"></p>
+
+  <br><br>
+  <button onclick="logout()">Logout</button>
 
   <script type="module">
     import { signOut } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+    import {
+      collection, getDocs, query, where, addDoc
+    } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+    import {
+      ref, uploadBytes, getDownloadURL
+    } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-storage.js";
 
     async function logout() {
       await signOut(window.auth);
       window.location.href = "index.html";
     }
+
+    let assignedPhases = [];
+    let currentPhaseId = null;
+    let currentProjectId = null;
+
+    // Load contractor phases
+    async function loadPhases() {
+      const user = window.auth.currentUser;
+
+      const phaseList = document.getElementById("phaseList");
+      phaseList.innerHTML = "";
+
+      // Search all projects → all phases where assignedTo = user.uid
+      const projectsSnap = await getDocs(collection(window.db, "projects"));
+
+      projectsSnap.forEach(async (projectDoc) => {
+        const projectId = projectDoc.id;
+
+        const phasesSnap = await getDocs(
+          query(
+            collection(window.db, "projects", projectId, "phases"),
+            where("assignedTo", "==", user.uid)
+          )
+        );
+
+        phasesSnap.forEach(phaseDoc => {
+          const data = phaseDoc.data();
+
+          const div = document.createElement("div");
+          div.style.background = "#eee";
+          div.style.padding = "10px";
+          div.style.margin = "10px 0";
+          div.style.borderRadius = "6px";
+          div.style.cursor = "pointer";
+
+          div.innerHTML = `
+            <strong>${data.phaseName}</strong><br>
+            Due: ${data.dueDate}<br>
+            Status: ${data.status}
+          `;
+
+          div.onclick = () => {
+            currentPhaseId = phaseDoc.id;
+            currentProjectId = projectId;
+          };
+
+          phaseList.appendChild(div);
+        });
+      });
+    }
+
+    loadPhases();
+
+    // Upload daily photo
+    async function uploadPhoto() {
+      if (!currentPhaseId || !currentProjectId) {
+        alert("Select a phase first.");
+        return;
+      }
+
+      const file = document.getElementById("photoFile").files[0];
+      if (!file) {
+        alert("Choose a photo first.");
+        return;
+      }
+
+      const storageRef = ref(window.storage, `photos/${currentProjectId}/${currentPhaseId}/${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+
+      // Save photo URL
+      await addDoc(
+        collection(window.db, "projects", currentProjectId, "phases", currentPhaseId, "photos"),
+        { url, timestamp: new Date().toISOString() }
+      );
+
+      document.getElementById("uploadStatus").innerText = "Photo uploaded!";
+    }
   </script>
 </body>
-</html>
