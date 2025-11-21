@@ -8,89 +8,80 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            background: #f5f5f5;
+            background: #f1f1f1;
             margin: 0;
             padding: 0;
         }
 
-        .topbar {
-            background: #111;
+        .navbar {
+            background: #222;
             color: white;
             padding: 15px;
             text-align: center;
             font-size: 22px;
-            font-weight: bold;
         }
 
         .container {
+            width: 90%;
             max-width: 500px;
-            margin: 40px auto;
             background: white;
             padding: 25px;
+            margin: 30px auto;
             border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-shadow: 0px 0px 10px #ccc;
         }
 
         input {
             width: 100%;
             padding: 12px;
-            margin: 8px 0 15px;
-            border: 1px solid #ccc;
+            margin-top: 10px;
             border-radius: 6px;
+            border: 1px solid #ccc;
             font-size: 16px;
         }
 
         button {
-            padding: 12px 18px;
-            background: #1976d2;
-            border: none;
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            background: #0066ff;
             color: white;
+            border: none;
             border-radius: 6px;
             cursor: pointer;
             font-size: 16px;
         }
 
         button:hover {
-            background: #0f5bab;
-        }
-
-        h2 {
-            margin-top: 0;
-        }
-
-        .divider {
-            height: 2px;
-            background: #ddd;
-            margin: 30px 0;
+            background: #004ecc;
         }
     </style>
 </head>
 
 <body>
 
-    <div class="topbar">Construction Management Login</div>
+    <div class="navbar">Construction Management Login</div>
 
     <div class="container">
         <h2>Create Admin Account</h2>
-
         <input id="adminEmail" type="email" placeholder="Admin Email">
-        <input id="adminPassword" type="password" placeholder="Password">
-
+        <input id="adminPassword" type="password" placeholder="Admin Password">
         <button onclick="createAdmin()">Create Admin</button>
 
-        <div class="divider"></div>
+        <br><br>
 
         <h2>Login</h2>
-
         <input id="loginEmail" type="email" placeholder="Email">
         <input id="loginPassword" type="password" placeholder="Password">
-
-        <button onclick="login()">Login</button>
-
+        <button onclick="loginUser()">Login</button>
     </div>
 
-    <!-- IMPORTANT: load script.js as a MODULE -->
-    <script type="module" src="script.js"></script>
+    <!-- Firebase CDN Libraries (MUST come before script.js) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+
+    <!-- Your custom script -->
+    <script src="script.js"></script>
 
 </body>
 </html>
