@@ -6,84 +6,43 @@
     <title>Construction Management Login</title>
 
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-        }
-
-        .header {
-            background: #222;
-            color: #fff;
-            padding: 15px;
-            text-align: center;
-            font-size: 22px;
-            font-weight: bold;
-        }
-
-        .container {
-            width: 90%;
-            max-width: 500px;
-            margin: 25px auto;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-
-        input {
-            width: 100%;
-            padding: 12px;
-            margin: 8px 0;
-            font-size: 16px;
-        }
-
-        button {
-            width: 100%;
-            padding: 12px;
-            font-size: 18px;
-            background: #007bff;
-            color: white;
-            border: none;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-
-        button:hover {
-            background: #0056b3;
-        }
-
-        h2 {
-            margin-top: 0;
-        }
+        body { font-family: Arial; background:#f4f4f4; margin:0; }
+        .header { background:#222; color:white; padding:15px; text-align:center; font-size:22px; }
+        .box { width:90%; max-width:500px; margin:25px auto; background:white; padding:20px;
+               border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.2); }
+        input, button { width:100%; padding:12px; margin-top:10px; font-size:16px; }
+        button { background:#007bff; color:white; border:none; }
     </style>
 </head>
 
 <body>
 
-    <div class="header">Construction Management Login</div>
+<div class="header">Construction Management Login</div>
 
-    <div class="container">
-        <h2>Create Admin Account</h2>
-        <input id="adminEmail" type="email" placeholder="Admin Email">
-        <input id="adminPassword" type="password" placeholder="Password">
-        <button onclick="createAdmin()">Create Admin</button>
+<div class="box">
+    <h2>Create Admin Account</h2>
+    <input id="adminEmail" type="email" placeholder="Admin Email">
+    <input id="adminPassword" type="password" placeholder="Password">
+    <button onclick="createAdmin()">Create Admin</button>
 
-        <hr>
+    <hr>
 
-        <h2>Login</h2>
-        <input id="loginEmail" type="email" placeholder="Email">
-        <input id="loginPassword" type="password" placeholder="Password">
-        <button onclick="loginUser()">Login</button>
-    </div>
+    <h2>Login</h2>
+    <input id="loginEmail" type="email" placeholder="Email">
+    <input id="loginPassword" type="password" placeholder="Password">
+    <button onclick="loginUser()">Login</button>
+</div>
 
-    <!-- ✅ Firebase SDKs (REQUIRED for GitHub Pages) -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<!-- 🔥 LOAD FIREBASE SDKs FIRST -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
-    <!-- ✅ Your App Logic -->
-    <script src="script.js"></script>
+<script>
+    console.log("🔥 Firebase SDKs loaded:", typeof firebase);
+</script>
+
+<!-- 🔥 YOUR SCRIPT -->
+<script src="script.js"></script>
 
 </body>
 </html>
