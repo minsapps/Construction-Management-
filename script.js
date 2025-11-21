@@ -1,18 +1,26 @@
-function addTask() {
-  const input = document.getElementById("taskInput");
-  const task = input.value.trim();
-  if (task === "") return;
+// LOGIN FUNCTION
+async function login() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
-  const li = document.createElement("li");
-  li.textContent = task;
+  try {
+    const userCredential = await auth.signInWithEmailAndPassword(email, password);
+    const user = userCredential.user;
+    window.location.href = "dashboard.html"; // redirect to dashboard
+  } catch (error) {
+    document.getElementById("error-message").innerText = error.message;
+  }
+}
 
-  const deleteBtn = document.createElement("button");
-  deleteBtn.textContent = "Delete";
-  deleteBtn.className = "delete-btn";
-  deleteBtn.onclick = () => li.remove();
+// CREATE ADMIN ACCOUNT
+async function createAdmin() {
+  const email = document.getElementById("admin-email").value;
+  const password = document.getElementById("admin-password").value;
 
-  li.appendChild(deleteBtn);
-  document.getElementById("taskList").appendChild(li);
-
-  input.value = "";
+  try {
+    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+    alert("Admin created successfully!");
+  } catch (error) {
+    alert(error.message);
+  }
 }
