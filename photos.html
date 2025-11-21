@@ -8,29 +8,38 @@
 <body>
 
   <div class="navbar">
-    Construction Management App - Photos
+    Construction Management App — Photos
   </div>
 
-  <h1>Project Photos</h1>
+  <h1>All Project Photos</h1>
 
   <div id="gallery">Loading...</div>
 
   <button id="backBtn">Back</button>
 
-  <br><br><br>
+  <div class="page-end"></div>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+
+    /* ---------------------------------------------------------
+       FIREBASE IMPORTS
+    --------------------------------------------------------- */
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
     import {
       getAuth,
       onAuthStateChanged
-    } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
     import {
       getFirestore,
       collection,
       getDocs
-    } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+    /* ---------------------------------------------------------
+       FIREBASE INIT
+    --------------------------------------------------------- */
     const firebaseConfig = {
       apiKey: "AIzaSyB0Rj0mJmvfG_iK6ZGTl_UgiTCv8J_Y1Dv0",
       authDomain: "construction-management-f48cb.firebaseapp.com",
@@ -44,9 +53,20 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    /* ---------------------------------------------------------
+       GET PROJECT ID FROM URL
+    --------------------------------------------------------- */
     const url = new URL(window.location.href);
     const projectId = url.searchParams.get("projectId");
 
+    if (!projectId) {
+      alert("Missing projectId");
+      window.location.href = "admin.html";
+    }
+
+    /* ---------------------------------------------------------
+       LOAD PHOTOS ACROSS ALL PHASES
+    --------------------------------------------------------- */
     async function loadPhotos() {
       const gallery = document.getElementById("gallery");
       gallery.innerHTML = "";
@@ -55,43 +75,54 @@
         collection(db, "projects", projectId, "phases")
       );
 
-      phasesSnap.forEach(async (phaseDoc) => {
+      let found = false;
+
+      for (const phaseDoc of phasesSnap.docs) {
         const phaseId = phaseDoc.id;
 
         const photosSnap = await getDocs(
           collection(db, "projects", projectId, "phases", phaseId, "photos")
         );
 
-        photosSnap.forEach(pdoc => {
-          const url = pdoc.data().url;
+        photosSnap.forEach(photoDoc => {
+          found = true;
+          const url = photoDoc.data().url;
 
-          const card = document.createElement("div");
-          card.className = "card";
+          const wrapper = document.createElement("div");
+          wrapper.className = "card";
 
           const img = document.createElement("img");
           img.src = url;
           img.style.width = "150px";
           img.style.borderRadius = "6px";
 
-          card.appendChild(img);
-          gallery.appendChild(card);
+          wrapper.appendChild(img);
+          gallery.appendChild(wrapper);
         });
-      });
+      }
 
-      if (!gallery.innerHTML) {
-        gallery.textContent = "No photos yet.";
+      if (!found) {
+        gallery.innerHTML = "No photos uploaded yet.";
       }
     }
 
-    document.getElementById("backBtn").addEventListener("click", () => window.history.back());
-
+    /* ---------------------------------------------------------
+       AUTH GUARD
+    --------------------------------------------------------- */
     onAuthStateChanged(auth, (user) => {
       if (!user) {
         window.location.href = "index.html";
         return;
       }
+
       loadPhotos();
     });
+
+    /* ---------------------------------------------------------
+       EVENTS
+    --------------------------------------------------------- */
+    document.getElementById("backBtn").addEventListener("click", () => window.history.back());
+
   </script>
 
 </body>
