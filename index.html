@@ -2,56 +2,35 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Construction Management - Login</title>
+  <title>Construction Management Login</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <div class="navbar">
-    Construction Management App
-  </div>
+  <div class="navbar">Construction Management Login</div>
 
-  <div id="login-box">
-    <h2>Login</h2>
-    <input type="email" id="email" placeholder="Email">
-    <input type="password" id="password" placeholder="Password">
-    <button id="loginBtn">Login</button>
-    <p id="error-message" style="color:red;"></p>
+  <h2>Create Admin Account</h2>
+  <input id="adminEmail" placeholder="Admin Email">
+  <input id="adminPass" placeholder="Admin Password" type="password">
+  <button id="createAdminBtn">Create Admin</button>
+  <p id="adminStatus"></p>
 
-    <hr>
-
-    <h3>Create Admin Account</h3>
-    <input type="email" id="admin-email" placeholder="Admin Email">
-    <input type="password" id="admin-password" placeholder="Admin Password">
-    <button id="createAdminBtn">Create Admin</button>
-  </div>
-
-  <div class="page-end"></div>
+  <h2>Login</h2>
+  <input id="loginEmail" placeholder="Email">
+  <input id="loginPass" placeholder="Password" type="password">
+  <button id="loginBtn">Login</button>
+  <p id="loginStatus"></p>
 
   <script type="module">
-    /* ---------------------------------------------------------
-       FIREBASE IMPORTS — WORKING VERSION
-    --------------------------------------------------------- */
+    /* FIREBASE IMPORTS */
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-
     import {
       getAuth,
-      onAuthStateChanged,
-      signInWithEmailAndPassword,
       createUserWithEmailAndPassword,
-      signOut
+      signInWithEmailAndPassword
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-    import {
-      getFirestore,
-      doc,
-      getDoc,
-      setDoc
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-    /* ---------------------------------------------------------
-       FIREBASE CONFIG
-    --------------------------------------------------------- */
+    /* FIREBASE CONFIG */
     const firebaseConfig = {
       apiKey: "AIzaSyB0Rj0mJmvfG_iK6ZGTl_UgiTCv8J_Y1Dv0",
       authDomain: "construction-management-f48cb.firebaseapp.com",
@@ -63,79 +42,32 @@
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const db = getFirestore(app);
 
-    /* Make accessible globally */
-    window.auth = auth;
-    window.db = db;
-
-    /* ---------------------------------------------------------
-       ROLE-BASED REDIRECT
-    --------------------------------------------------------- */
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) return;
-
-      const ref = doc(db, "users", user.uid);
-      const snap = await getDoc(ref);
-
-      if (!snap.exists()) return;
-
-      const role = snap.data().role;
-
-      if (role === "admin")
-        window.location.href = "https://minsapps.github.io/Construction-Management-/admin.html";
-
-      else if (role === "contractor")
-        window.location.href = "https://minsapps.github.io/Construction-Management-/contractor.html";
-
-      else if (role === "customer")
-        window.location.href = "https://minsapps.github.io/Construction-Management-/customer.html";
-    });
-
-    /* ---------------------------------------------------------
-       LOGIN FUNCTION
-    --------------------------------------------------------- */
-    async function login() {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      const err = document.getElementById("error-message");
-
-      err.textContent = "";
+    /* CREATE ADMIN */
+    document.getElementById("createAdminBtn").onclick = async () => {
+      const email = adminEmail.value;
+      const pass = adminPass.value;
 
       try {
-        await signInWithEmailAndPassword(auth, email, password);
+        await createUserWithEmailAndPassword(auth, email, pass);
+        adminStatus.innerText = "Admin created!";
       } catch (e) {
-        err.textContent = e.message;
+        adminStatus.innerText = e.message;
       }
-    }
+    };
 
-    /* ---------------------------------------------------------
-       CREATE ADMIN ACCOUNT
-    --------------------------------------------------------- */
-    async function createAdmin() {
-      const email = document.getElementById("admin-email").value;
-      const password = document.getElementById("admin-password").value;
+    /* LOGIN */
+    document.getElementById("loginBtn").onclick = async () => {
+      const email = loginEmail.value;
+      const pass = loginPass.value;
 
-      if (!email || !password) {
-        alert("Enter admin email and password.");
-        return;
+      try {
+        await signInWithEmailAndPassword(auth, email, pass);
+        window.location.href = "admin.html";
+      } catch (e) {
+        loginStatus.innerText = e.message;
       }
-
-      const cred = await createUserWithEmailAndPassword(auth, email, password);
-
-      await setDoc(doc(db, "users", cred.user.uid), {
-        role: "admin",
-        createdAt: new Date().toISOString()
-      });
-
-      alert("Admin created successfully!");
-    }
-
-    /* ---------------------------------------------------------
-       EVENT LISTENERS
-    --------------------------------------------------------- */
-    document.getElementById("loginBtn").addEventListener("click", login);
-    document.getElementById("createAdminBtn").addEventListener("click", createAdmin);
+    };
   </script>
 
 </body>
