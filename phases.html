@@ -1,54 +1,87 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
   <title>Manage Phases</title>
   <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
+
   <div class="navbar">
-  Construction Management App
-</div>
+    Construction Management App - Phases
+  </div>
+
   <h1>Manage Phases</h1>
 
-  <h2>Add Phase</h2>
-  <input id="phaseName" placeholder="Phase Name (e.g. Rough Plumbing)">
-  <input id="assignedTo" placeholder="Contractor User ID">
-  <input id="dueDate" type="date">
-  <button onclick="addPhase()">Add Phase</button>
+  <div class="card">
+    <h2>Add Phase</h2>
+    <input id="phaseName" placeholder="Phase Name (e.g. Rough Plumbing)">
+    <input id="assignedTo" placeholder="Contractor User ID">
+    <input id="dueDate" type="date">
+    <button id="addPhaseBtn">Add Phase</button>
+    <p id="result"></p>
+  </div>
 
-  <p id="result"></p>
+  <div class="card">
+    <h2>Existing Phases</h2>
+    <div id="phaseList">Loading...</div>
+  </div>
 
-  <h2>Existing Phases</h2>
-  <div id="phaseList">Loading...</div>
+  <button id="backBtn">Back</button>
 
-  <button onclick="goBack()">Back</button>
+  <br><br><br>
 
   <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
     import {
-      collection, addDoc, getDocs
+      getAuth,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      getDocs
     } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB0Rj0mJmvfG_iK6ZGTl_UgiTCv8J_Y1Dv0",
+      authDomain: "construction-management-f48cb.firebaseapp.com",
+      projectId: "construction-management-f48cb",
+      storageBucket: "construction-management-f48cb.appspot.com",
+      messagingSenderId: "1013804592434",
+      appId: "1:1013804592434:web:79226b78462dbfbd519f2b"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
     const url = new URL(window.location.href);
     const projectId = url.searchParams.get("projectId");
 
     async function addPhase() {
-      const name = document.getElementById("phaseName").value;
-      const contractor = document.getElementById("assignedTo").value;
-      const due = document.getElementById("dueDate").value;
+      const phaseName = document.getElementById("phaseName").value;
+      const assignedTo = document.getElementById("assignedTo").value;
+      const dueDate = document.getElementById("dueDate").value;
+
+      if (!phaseName || !assignedTo || !dueDate) {
+        alert("All fields required.");
+        return;
+      }
 
       await addDoc(
-        collection(window.db, "projects", projectId, "phases"),
+        collection(db, "projects", projectId, "phases"),
         {
-          phaseName: name,
-          assignedTo: contractor,
-          dueDate: due,
+          phaseName,
+          assignedTo,
+          dueDate,
           status: "not-started",
           progress: 0
         }
       );
 
-      document.getElementById("result").innerText = "Phase added!";
+      document.getElementById("result").textContent = "Phase added.";
       loadPhases();
     }
 
@@ -56,36 +89,42 @@
       const list = document.getElementById("phaseList");
       list.innerHTML = "";
 
-      const snapshot = await getDocs(
-        collection(window.db, "projects", projectId, "phases")
+      const snap = await getDocs(
+        collection(db, "projects", projectId, "phases")
       );
 
-      snapshot.forEach(doc => {
-        const data = doc.data();
-
+      snap.forEach(docSnap => {
+        const data = docSnap.data();
         const div = document.createElement("div");
-div.className = "card";
-
+        div.className = "card";
         div.innerHTML = `
-  <strong>${data.phaseName}</strong><br>
-  Assigned To: ${data.assignedTo}<br>
-  Due Date: ${data.dueDate}<br>
-  Status: ${data.status}<br><br>
-  <button onclick="manageTasks('${phaseDoc.id}')">Manage Tasks</button>
-`;
-
+          <strong>${data.phaseName}</strong><br>
+          Assigned To: ${data.assignedTo}<br>
+          Due: ${data.dueDate}<br>
+          Status: ${data.status}<br><br>
+          <button onclick="window.location.href='tasks.html?projectId=${projectId}&phaseId=${docSnap.id}'">
+            Manage Tasks
+          </button>
+        `;
         list.appendChild(div);
       });
+
+      if (snap.size === 0) {
+        list.innerHTML = "No phases yet.";
+      }
     }
 
-    function goBack() {
-      window.history.back();
-    }
+    document.getElementById("addPhaseBtn").addEventListener("click", addPhase);
+    document.getElementById("backBtn").addEventListener("click", () => window.history.back());
 
-    loadPhases();
-    function manageTasks(phaseId) {
-  window.location.href = `tasks.html?projectId=${projectId}&phaseId=${phaseId}`;
-}
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "index.html";
+        return;
+      }
+      loadPhases();
+    });
   </script>
+
 </body>
 </html>
