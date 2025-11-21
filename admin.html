@@ -6,20 +6,85 @@
 </head>
 
 <body>
+  <body>
   <h1>Admin Dashboard</h1>
-  <p>Welcome, Admin!</p>
 
-  <div>
-    <button onclick="logout()">Logout</button>
-  </div>
+  <h2>Create New Project</h2>
+  <input id="projectName" placeholder="Project Name (Example: 123 Main St)">
+  <input id="customerId" placeholder="Customer User ID">
+  <button onclick="createNewProject()">Create Project</button>
+  <p id="projectResult"></p>
+
+  <h2>Existing Projects</h2>
+  <div id="projectList">Loading...</div>
+
+  <br><br>
+  <button onclick="logout()">Logout</button>
 
   <script type="module">
     import { signOut } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+    import { 
+      collection, getDocs, addDoc 
+    } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
+    // Logout
     async function logout() {
       await signOut(window.auth);
       window.location.href = "index.html";
     }
+
+    // Create new project
+    async function createNewProject() {
+      const name = document.getElementById("projectName").value;
+      const customer = document.getElementById("customerId").value;
+
+      if (!name || !customer) {
+        alert("Please enter project name and customer ID");
+        return;
+      }
+
+      const docRef = await addDoc(collection(window.db, "projects"), {
+        projectName: name,
+        customerId: customer,
+        startDate: new Date().toISOString(),
+        status: "in-progress",
+        totalPayments: 0
+      });
+
+      document.getElementById("projectResult").innerText =
+        "Project created: ID = " + docRef.id;
+      
+      loadProjects();
+    }
+
+    // Load all projects
+    async function loadProjects() {
+      const list = document.getElementById("projectList");
+      list.innerHTML = "";
+
+      const snapshot = await getDocs(collection(window.db, "projects"));
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const div = document.createElement("div");
+        div.style.margin = "10px 0";
+        div.style.padding = "10px";
+        div.style.background = "#eee";
+        div.style.borderRadius = "6px";
+
+        div.innerHTML = `
+          <strong>${data.projectName}</strong><br>
+          Project ID: ${doc.id}<br>
+          Customer: ${data.customerId}<br>
+          Status: ${data.status}<br>
+        `;
+
+        list.appendChild(div);
+      });
+    }
+
+    loadProjects();
   </script>
+</body>
 </body>
 </html>
