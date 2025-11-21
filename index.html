@@ -26,24 +26,32 @@
     <button id="createAdminBtn">Create Admin</button>
   </div>
 
-  <br><br><br>
+  <div class="page-end"></div>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+    /* ---------------------------------------------------------
+       FIREBASE IMPORTS — WORKING VERSION
+    --------------------------------------------------------- */
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
     import {
       getAuth,
       onAuthStateChanged,
       signInWithEmailAndPassword,
       createUserWithEmailAndPassword,
       signOut
-    } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
     import {
       getFirestore,
       doc,
       getDoc,
       setDoc
-    } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+    /* ---------------------------------------------------------
+       FIREBASE CONFIG
+    --------------------------------------------------------- */
     const firebaseConfig = {
       apiKey: "AIzaSyB0Rj0mJmvfG_iK6ZGTl_UgiTCv8J_Y1Dv0",
       authDomain: "construction-management-f48cb.firebaseapp.com",
@@ -57,7 +65,13 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // Redirect based on role
+    /* Make accessible globally */
+    window.auth = auth;
+    window.db = db;
+
+    /* ---------------------------------------------------------
+       ROLE-BASED REDIRECT
+    --------------------------------------------------------- */
     onAuthStateChanged(auth, async (user) => {
       if (!user) return;
 
@@ -68,16 +82,24 @@
 
       const role = snap.data().role;
 
-      if (role === "admin") window.location.href = "admin.html";
-      else if (role === "contractor") window.location.href = "contractor.html";
-      else if (role === "customer") window.location.href = "customer.html";
+      if (role === "admin")
+        window.location.href = "https://minsapps.github.io/Construction-Management-/admin.html";
+
+      else if (role === "contractor")
+        window.location.href = "https://minsapps.github.io/Construction-Management-/contractor.html";
+
+      else if (role === "customer")
+        window.location.href = "https://minsapps.github.io/Construction-Management-/customer.html";
     });
 
-    // Login
+    /* ---------------------------------------------------------
+       LOGIN FUNCTION
+    --------------------------------------------------------- */
     async function login() {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
       const err = document.getElementById("error-message");
+
       err.textContent = "";
 
       try {
@@ -87,7 +109,9 @@
       }
     }
 
-    // Create Admin
+    /* ---------------------------------------------------------
+       CREATE ADMIN ACCOUNT
+    --------------------------------------------------------- */
     async function createAdmin() {
       const email = document.getElementById("admin-email").value;
       const password = document.getElementById("admin-password").value;
@@ -98,13 +122,18 @@
       }
 
       const cred = await createUserWithEmailAndPassword(auth, email, password);
+
       await setDoc(doc(db, "users", cred.user.uid), {
-        role: "admin"
+        role: "admin",
+        createdAt: new Date().toISOString()
       });
 
-      alert("Admin created. You can now log in.");
+      alert("Admin created successfully!");
     }
 
+    /* ---------------------------------------------------------
+       EVENT LISTENERS
+    --------------------------------------------------------- */
     document.getElementById("loginBtn").addEventListener("click", login);
     document.getElementById("createAdminBtn").addEventListener("click", createAdmin);
   </script>
