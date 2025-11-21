@@ -1,74 +1,96 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Construction Management Login</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Construction Management Login</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+
+        .topbar {
+            background: #111;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 40px auto;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0 15px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 12px 18px;
+            background: #1976d2;
+            border: none;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background: #0f5bab;
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        .divider {
+            height: 2px;
+            background: #ddd;
+            margin: 30px 0;
+        }
+    </style>
 </head>
+
 <body>
 
-  <div class="navbar">Construction Management Login</div>
+    <div class="topbar">Construction Management Login</div>
 
-  <h2>Create Admin Account</h2>
-  <input id="adminEmail" placeholder="Admin Email">
-  <input id="adminPass" placeholder="Admin Password" type="password">
-  <button id="createAdminBtn">Create Admin</button>
-  <p id="adminStatus"></p>
+    <div class="container">
+        <h2>Create Admin Account</h2>
 
-  <h2>Login</h2>
-  <input id="loginEmail" placeholder="Email">
-  <input id="loginPass" placeholder="Password" type="password">
-  <button id="loginBtn">Login</button>
-  <p id="loginStatus"></p>
+        <input id="adminEmail" type="email" placeholder="Admin Email">
+        <input id="adminPassword" type="password" placeholder="Password">
 
-  <script type="module">
-    /* FIREBASE IMPORTS */
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getAuth,
-      createUserWithEmailAndPassword,
-      signInWithEmailAndPassword
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        <button onclick="createAdmin()">Create Admin</button>
 
-    /* FIREBASE CONFIG */
-    const firebaseConfig = {
-      apiKey: "AIzaSyB0Rj0mJmvfG_iK6ZGTl_UgiTCv8J_Y1Dv0",
-      authDomain: "construction-management-f48cb.firebaseapp.com",
-      projectId: "construction-management-f48cb",
-      storageBucket: "construction-management-f48cb.appspot.com",
-      messagingSenderId: "1013804592434",
-      appId: "1:1013804592434:web:79226b78462dbfbd519f2b"
-    };
+        <div class="divider"></div>
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
+        <h2>Login</h2>
 
-    /* CREATE ADMIN */
-    document.getElementById("createAdminBtn").onclick = async () => {
-      const email = adminEmail.value;
-      const pass = adminPass.value;
+        <input id="loginEmail" type="email" placeholder="Email">
+        <input id="loginPassword" type="password" placeholder="Password">
 
-      try {
-        await createUserWithEmailAndPassword(auth, email, pass);
-        adminStatus.innerText = "Admin created!";
-      } catch (e) {
-        adminStatus.innerText = e.message;
-      }
-    };
+        <button onclick="login()">Login</button>
 
-    /* LOGIN */
-    document.getElementById("loginBtn").onclick = async () => {
-      const email = loginEmail.value;
-      const pass = loginPass.value;
+    </div>
 
-      try {
-        await signInWithEmailAndPassword(auth, email, pass);
-        window.location.href = "admin.html";
-      } catch (e) {
-        loginStatus.innerText = e.message;
-      }
-    };
-  </script>
+    <!-- IMPORTANT: load script.js as a MODULE -->
+    <script type="module" src="script.js"></script>
 
 </body>
 </html>
