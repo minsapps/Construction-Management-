@@ -32,18 +32,29 @@
 </head>
 <body>
 
-  <h1>Construction Management App</h1>
-  <p>Track each stage and task in your home building process.</p>
+<body>
 
-  <div id="app">
-    <h2>Add a Job Task</h2>
-    <input id="taskInput" type="text" placeholder="Example: Sheetrock 2nd Floor">
-    <button onclick="addTask()">Add Task</button>
+  <div id="login-box">
+    <h2>Construction Management Login</h2>
 
-    <h2>Tasks</h2>
-    <ul id="taskList"></ul>
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Password">
+
+    <button onclick="login()">Login</button>
+
+    <p id="error-message" style="color: red;"></p>
+
+    <hr>
+
+    <h3>Create Admin Account</h3>
+    <input type="email" id="admin-email" placeholder="Admin Email">
+    <input type="password" id="admin-password" placeholder="Admin Password">
+    <button onclick="createAdmin()">Create Admin</button>
+
   </div>
 
   <script src="script.js"></script>
+
+</body>
 </body>
 </html>
