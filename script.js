@@ -19,8 +19,33 @@ async function createAdmin() {
 
   try {
     const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-    alert("Admin created successfully!");
+// Save admin role in Firestore
+await db.collection("users").doc(userCredential.user.uid).set({
+  role: "admin"
+});
+
+alert("Admin created successfully!");
   } catch (error) {
     alert(error.message);
   }
 }
+// ROLE CHECKER AFTER LOGIN
+auth.onAuthStateChanged(async (user) => {
+  if (!user) return;
+
+  // Get user role from Firestore
+  const docRef = db.collection("users").doc(user.uid);
+  const doc = await docRef.get();
+
+  if (doc.exists) {
+    const role = doc.data().role;
+
+    if (role === "admin") {
+      window.location.href = "admin.html";
+    } else if (role === "contractor") {
+      window.location.href = "contractor.html";
+    } else if (role === "customer") {
+      window.location.href = "customer.html";
+    }
+  }
+});
