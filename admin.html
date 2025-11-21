@@ -72,12 +72,16 @@
         div.style.background = "#eee";
         div.style.borderRadius = "6px";
 
-        div.innerHTML = `
+       div.innerHTML = `
   <strong>${data.projectName}</strong><br>
-  Project ID: ${doc.id}<br>
+  ID: ${doc.id}<br>
   Customer: ${data.customerId}<br>
   Status: ${data.status}<br><br>
-  <button onclick="managePhases('${doc.id}')">Manage Phases</button>
+
+  <button onclick="managePhases('${doc.id}')">Phases</button>
+  <button onclick="openTasks('${doc.id}')">Tasks</button>
+  <button onclick="openPayments('${doc.id}')">Payments</button>
+  <button onclick="openPhotos('${doc.id}')">Photos</button>
 `;
 
         list.appendChild(div);
@@ -86,7 +90,18 @@
 
     loadProjects();
     // Redirect to phase manager page
-function managePhases(projectId) {
+function managePhases(projectId)
+function openTasks(projectId) {
+  window.location.href = "tasks.html?projectId=" + projectId;
+}
+
+function openPayments(projectId) {
+  window.location.href = "payments.html?projectId=" + projectId;
+}
+
+function openPhotos(projectId) {
+  window.location.href = "photos.html?projectId=" + projectId;
+}{
   window.location.href = "phases.html?projectId=" + projectId;
 }
     <h2>Add Customer Payment</h2>
