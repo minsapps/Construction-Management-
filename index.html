@@ -2,59 +2,112 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Construction Management App</title>
+  <title>Construction Management - Login</title>
   <link rel="stylesheet" href="style.css">
-  <!-- Firebase App SDK -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-  import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
-  import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
-  import { getStorage } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-storage.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyB0Rj0mJmvfG_iK6ZGTl_UgiTCv8J_Y1Dv0",
-    authDomain: "construction-management-f48cb.firebaseapp.com",
-    projectId: "construction-management-f48cb",
-    storageBucket: "construction-management-f48cb.appspot.com",
-    messagingSenderId: "1013804592434",
-    appId: "1:1013804592434:web:79226b78462dbfbd519f2b"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-  const storage = getStorage(app);
-
-  window.auth = auth;
-  window.db = db;
-  window.storage = storage;
-</script>
 </head>
 <body>
 
-<body>
+  <div class="navbar">
+    Construction Management App
+  </div>
 
   <div id="login-box">
-    <h2>Construction Management Login</h2>
-
+    <h2>Login</h2>
     <input type="email" id="email" placeholder="Email">
     <input type="password" id="password" placeholder="Password">
-
-    <button onclick="login()">Login</button>
-
-    <p id="error-message" style="color: red;"></p>
+    <button id="loginBtn">Login</button>
+    <p id="error-message" style="color:red;"></p>
 
     <hr>
 
     <h3>Create Admin Account</h3>
     <input type="email" id="admin-email" placeholder="Admin Email">
     <input type="password" id="admin-password" placeholder="Admin Password">
-    <button onclick="createAdmin()">Create Admin</button>
-
+    <button id="createAdminBtn">Create Admin</button>
   </div>
 
-  <script src="script.js"></script>
+  <br><br><br>
 
-</body>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+    import {
+      getAuth,
+      onAuthStateChanged,
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      getDoc,
+      setDoc
+    } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB0Rj0mJmvfG_iK6ZGTl_UgiTCv8J_Y1Dv0",
+      authDomain: "construction-management-f48cb.firebaseapp.com",
+      projectId: "construction-management-f48cb",
+      storageBucket: "construction-management-f48cb.appspot.com",
+      messagingSenderId: "1013804592434",
+      appId: "1:1013804592434:web:79226b78462dbfbd519f2b"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // Redirect based on role
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) return;
+
+      const ref = doc(db, "users", user.uid);
+      const snap = await getDoc(ref);
+
+      if (!snap.exists()) return;
+
+      const role = snap.data().role;
+
+      if (role === "admin") window.location.href = "admin.html";
+      else if (role === "contractor") window.location.href = "contractor.html";
+      else if (role === "customer") window.location.href = "customer.html";
+    });
+
+    // Login
+    async function login() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      const err = document.getElementById("error-message");
+      err.textContent = "";
+
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+      } catch (e) {
+        err.textContent = e.message;
+      }
+    }
+
+    // Create Admin
+    async function createAdmin() {
+      const email = document.getElementById("admin-email").value;
+      const password = document.getElementById("admin-password").value;
+
+      if (!email || !password) {
+        alert("Enter admin email and password.");
+        return;
+      }
+
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      await setDoc(doc(db, "users", cred.user.uid), {
+        role: "admin"
+      });
+
+      alert("Admin created. You can now log in.");
+    }
+
+    document.getElementById("loginBtn").addEventListener("click", login);
+    document.getElementById("createAdminBtn").addEventListener("click", createAdmin);
+  </script>
+
 </body>
 </html>
