@@ -100,6 +100,56 @@ function managePhases(projectId) {
 <input id="viewPayProjectId" placeholder="Project ID">
 <button onclick="loadPayments()">Load Payments</button>
 <div id="paymentsList"></div>
+    // Add a customer payment
+async function addPayment() {
+  const projectId = document.getElementById("payProjectId").value;
+  const amount = Number(document.getElementById("payAmount").value);
+  const date = document.getElementById("payDate").value;
+
+  if (!projectId || !amount || !date) {
+    alert("All fields required.");
+    return;
+  }
+
+  await addDoc(
+    collection(window.db, "projects", projectId, "payments"),
+    {
+      amount,
+      date,
+      addedBy: window.auth.currentUser.uid
+    }
+  );
+
+  document.getElementById("payResult").innerText = "Payment added!";
+}
+
+// Load payments for one project
+async function loadPayments() {
+  const projectId = document.getElementById("viewPayProjectId").value;
+  const list = document.getElementById("paymentsList");
+  list.innerHTML = "";
+
+  const snap = await getDocs(
+    collection(window.db, "projects", projectId, "payments")
+  );
+
+  snap.forEach(doc => {
+    const p = doc.data();
+
+    const div = document.createElement("div");
+    div.style.background = "#eee";
+    div.style.padding = "10px";
+    div.style.margin = "10px 0";
+    div.style.borderRadius = "6px";
+
+    div.innerHTML = `
+      Amount: $${p.amount}<br>
+      Date: ${p.date}<br>
+    `;
+
+    list.appendChild(div);
+  });
+}
   </script>
 </body>
 </body>
