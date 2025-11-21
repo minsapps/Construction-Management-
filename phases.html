@@ -67,11 +67,12 @@
         div.style.borderRadius = "6px";
 
         div.innerHTML = `
-          <strong>${data.phaseName}</strong><br>
-          Assigned To: ${data.assignedTo}<br>
-          Due Date: ${data.dueDate}<br>
-          Status: ${data.status}<br>
-        `;
+  <strong>${data.phaseName}</strong><br>
+  Assigned To: ${data.assignedTo}<br>
+  Due Date: ${data.dueDate}<br>
+  Status: ${data.status}<br><br>
+  <button onclick="manageTasks('${phaseDoc.id}')">Manage Tasks</button>
+`;
 
         list.appendChild(div);
       });
@@ -82,6 +83,9 @@
     }
 
     loadPhases();
+    function manageTasks(phaseId) {
+  window.location.href = `tasks.html?projectId=${projectId}&phaseId=${phaseId}`;
+}
   </script>
 </body>
 </html>
