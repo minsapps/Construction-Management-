@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Manage Tasks</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <h1>Manage Tasks</h1>
+
+  <h2>Add Task</h2>
+  <input id="taskName" placeholder="Task Name (e.g. Rough plumbing lines)">
+  <input id="taskContractor" placeholder="Contractor User ID">
+  <input id="taskDueDate" type="date">
+  <button onclick="addTask()">Add Task</button>
+  <p id="taskResult"></p>
+
+  <h2>Existing Tasks</h2>
+  <div id="taskList">Loading...</div>
+
+  <button onclick="goBack()">Back</button>
+
+  <script type="module">
+    import {
+      collection, addDoc, getDocs
+    } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+    const url = new URL(window.location.href);
+    const projectId = url.searchParams.get("projectId");
+    const phaseId = url.searchParams.get("phaseId");
+
+    async function addTask() {
+      const tName = document.getElementById("taskName").value;
+      const contractor = document.getElementById("taskContractor").value;
+      const due = document.getElementById("taskDueDate").value;
+
+      await addDoc(
+        collection(window.db, "projects", projectId, "phases", phaseId, "tasks"),
+        {
+          taskName: tName,
+          assignedTo: contractor,
+          dueDate: due,
+          status: "not-started",
+          dailyPhotos: []
+        }
+      );
+
+      document.getElementById("taskResult").innerText = "Task added!";
+      loadTasks();
+    }
+
+    async function loadTasks() {
+      const list = document.getElementById("taskList");
+      list.innerHTML = "";
+
+      const snap = await getDocs(
+        collection(window.db, "projects", projectId, "phases", phaseId, "tasks")
+      );
+
+      snap.forEach(doc => {
+        const d = doc.data();
+
+        const div = document.createElement("div");
+        div.style.background = "#eee";
+        div.style.padding = "10px";
+        div.style.margin = "10px 0";
+        div.style.borderRadius = "6px";
+
+        div.innerHTML = `
+          <strong>${d.taskName}</strong><br>
+          Assigned To: ${d.assignedTo}<br>
+          Due: ${d.dueDate}<br>
+          Status: ${d.status}<br>
+        `;
+
+        list.appendChild(div);
+      });
+    }
+
+    function goBack() {
+      window.history.back();
+    }
+
+    loadTasks();
+  </script>
+</body>
+</html>
