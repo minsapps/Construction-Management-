@@ -1,32 +1,61 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
   <title>Manage Tasks</title>
   <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
+
   <div class="navbar">
-  Construction Management App
-</div>
+    Construction Management App - Tasks
+  </div>
+
   <h1>Manage Tasks</h1>
 
-  <h2>Add Task</h2>
-  <input id="taskName" placeholder="Task Name (e.g. Rough plumbing lines)">
-  <input id="taskContractor" placeholder="Contractor User ID">
-  <input id="taskDueDate" type="date">
-  <button onclick="addTask()">Add Task</button>
-  <p id="taskResult"></p>
+  <div class="card">
+    <h2>Add Task</h2>
+    <input id="taskName" placeholder="Task Name (e.g. Run gas line)">
+    <input id="taskContractor" placeholder="Contractor User ID">
+    <input id="taskDueDate" type="date">
+    <button id="addTaskBtn">Add Task</button>
+    <p id="taskResult"></p>
+  </div>
 
-  <h2>Existing Tasks</h2>
-  <div id="taskList">Loading...</div>
+  <div class="card">
+    <h2>Existing Tasks</h2>
+    <div id="taskList">Loading...</div>
+  </div>
 
-  <button onclick="goBack()">Back</button>
+  <button id="backBtn">Back</button>
+
+  <br><br><br>
 
   <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
     import {
-      collection, addDoc, getDocs
+      getAuth,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      getDocs
     } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB0Rj0mJmvfG_iK6ZGTl_UgiTCv8J_Y1Dv0",
+      authDomain: "construction-management-f48cb.firebaseapp.com",
+      projectId: "construction-management-f48cb",
+      storageBucket: "construction-management-f48cb.appspot.com",
+      messagingSenderId: "1013804592434",
+      appId: "1:1013804592434:web:79226b78462dbfbd519f2b"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
     const url = new URL(window.location.href);
     const projectId = url.searchParams.get("projectId");
@@ -35,20 +64,24 @@
     async function addTask() {
       const tName = document.getElementById("taskName").value;
       const contractor = document.getElementById("taskContractor").value;
-      const due = document.getElementById("taskDueDate").value;
+      const dueDate = document.getElementById("taskDueDate").value;
+
+      if (!tName || !contractor || !dueDate) {
+        alert("All fields required.");
+        return;
+      }
 
       await addDoc(
-        collection(window.db, "projects", projectId, "phases", phaseId, "tasks"),
+        collection(db, "projects", projectId, "phases", phaseId, "tasks"),
         {
           taskName: tName,
           assignedTo: contractor,
-          dueDate: due,
-          status: "not-started",
-          dailyPhotos: []
+          dueDate,
+          status: "not-started"
         }
       );
 
-      document.getElementById("taskResult").innerText = "Task added!";
+      document.getElementById("taskResult").textContent = "Task added.";
       loadTasks();
     }
 
@@ -57,30 +90,38 @@
       list.innerHTML = "";
 
       const snap = await getDocs(
-        collection(window.db, "projects", projectId, "phases", phaseId, "tasks")
+        collection(db, "projects", projectId, "phases", phaseId, "tasks")
       );
 
-      snap.forEach(doc => {
-        const d = doc.data();
-
+      snap.forEach(docSnap => {
+        const d = docSnap.data();
         const div = document.createElement("div");
-div.className = "card";
+        div.className = "card";
         div.innerHTML = `
           <strong>${d.taskName}</strong><br>
           Assigned To: ${d.assignedTo}<br>
           Due: ${d.dueDate}<br>
           Status: ${d.status}<br>
         `;
-
         list.appendChild(div);
       });
+
+      if (snap.size === 0) {
+        list.innerHTML = "No tasks yet.";
+      }
     }
 
-    function goBack() {
-      window.history.back();
-    }
+    document.getElementById("addTaskBtn").addEventListener("click", addTask);
+    document.getElementById("backBtn").addEventListener("click", () => window.history.back());
 
-    loadTasks();
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "index.html";
+        return;
+      }
+      loadTasks();
+    });
   </script>
+
 </body>
 </html>
