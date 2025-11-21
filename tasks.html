@@ -61,11 +61,7 @@
         const d = doc.data();
 
         const div = document.createElement("div");
-        div.style.background = "#eee";
-        div.style.padding = "10px";
-        div.style.margin = "10px 0";
-        div.style.borderRadius = "6px";
-
+div.className = "card";
         div.innerHTML = `
           <strong>${d.taskName}</strong><br>
           Assigned To: ${d.assignedTo}<br>
