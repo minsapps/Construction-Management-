@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Manage Phases</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <h1>Manage Phases</h1>
+
+  <h2>Add Phase</h2>
+  <input id="phaseName" placeholder="Phase Name (e.g. Rough Plumbing)">
+  <input id="assignedTo" placeholder="Contractor User ID">
+  <input id="dueDate" type="date">
+  <button onclick="addPhase()">Add Phase</button>
+
+  <p id="result"></p>
+
+  <h2>Existing Phases</h2>
+  <div id="phaseList">Loading...</div>
+
+  <button onclick="goBack()">Back</button>
+
+  <script type="module">
+    import {
+      collection, addDoc, getDocs
+    } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+    const url = new URL(window.location.href);
+    const projectId = url.searchParams.get("projectId");
+
+    async function addPhase() {
+      const name = document.getElementById("phaseName").value;
+      const contractor = document.getElementById("assignedTo").value;
+      const due = document.getElementById("dueDate").value;
+
+      await addDoc(
+        collection(window.db, "projects", projectId, "phases"),
+        {
+          phaseName: name,
+          assignedTo: contractor,
+          dueDate: due,
+          status: "not-started",
+          progress: 0
+        }
+      );
+
+      document.getElementById("result").innerText = "Phase added!";
+      loadPhases();
+    }
+
+    async function loadPhases() {
+      const list = document.getElementById("phaseList");
+      list.innerHTML = "";
+
+      const snapshot = await getDocs(
+        collection(window.db, "projects", projectId, "phases")
+      );
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+
+        const div = document.createElement("div");
+        div.style.background = "#eee";
+        div.style.padding = "10px";
+        div.style.margin = "10px 0";
+        div.style.borderRadius = "6px";
+
+        div.innerHTML = `
+          <strong>${data.phaseName}</strong><br>
+          Assigned To: ${data.assignedTo}<br>
+          Due Date: ${data.dueDate}<br>
+          Status: ${data.status}<br>
+        `;
+
+        list.appendChild(div);
+      });
+    }
+
+    function goBack() {
+      window.history.back();
+    }
+
+    loadPhases();
+  </script>
+</body>
+</html>
