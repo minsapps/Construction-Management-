@@ -8,14 +8,19 @@
 <body>
 
   <div class="navbar">
-    Construction Management App - Customer
+    Construction Management App — Customer
   </div>
 
-  <h1>Customer Dashboard</h1>
+  <h1>Your Project</h1>
 
   <div class="card">
-    <h2>Your Project</h2>
+    <h2>Project Info</h2>
     <div id="projectBox">Loading...</div>
+  </div>
+
+  <div class="card">
+    <h2>Document Vault</h2>
+    <div id="documentList">Loading...</div>
   </div>
 
   <div class="card">
@@ -30,23 +35,32 @@
 
   <button id="logoutBtn">Logout</button>
 
-  <br><br><br>
+  <div class="page-end"></div>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+
+    /* ---------------------------------------------------------
+       FIREBASE IMPORTS
+    --------------------------------------------------------- */
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    
     import {
       getAuth,
       onAuthStateChanged,
       signOut
-    } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
     import {
       getFirestore,
       collection,
       getDocs,
       query,
       where
-    } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+    /* ---------------------------------------------------------
+       FIREBASE INIT
+    --------------------------------------------------------- */
     const firebaseConfig = {
       apiKey: "AIzaSyB0Rj0mJmvfG_iK6ZGTl_UgiTCv8J_Y1Dv0",
       authDomain: "construction-management-f48cb.firebaseapp.com",
@@ -60,42 +74,88 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    let projectId = null;
+    let projectId = null; // Set after loading project
 
+    /* ---------------------------------------------------------
+       LOGOUT
+    --------------------------------------------------------- */
     async function logout() {
       await signOut(auth);
       window.location.href = "index.html";
     }
 
+    /* ---------------------------------------------------------
+       LOAD CUSTOMER PROJECT
+    --------------------------------------------------------- */
     async function loadProject(user) {
-      const projectsSnap = await getDocs(
+      const snap = await getDocs(
         query(
           collection(db, "projects"),
           where("customerId", "==", user.uid)
         )
       );
 
-      const projectBox = document.getElementById("projectBox");
+      const box = document.getElementById("projectBox");
 
-      if (projectsSnap.empty) {
-        projectBox.textContent = "No project found.";
+      if (snap.empty) {
+        box.innerHTML = "No project found for your account.";
         return;
       }
 
-      projectsSnap.forEach(docSnap => {
-        const data = docSnap.data();
+      snap.forEach(docSnap => {
+        const p = docSnap.data();
         projectId = docSnap.id;
-        projectBox.innerHTML = `
-          <strong>${data.projectName}</strong><br>
-          Status: ${data.status}<br>
-          Start Date: ${data.startDate}<br>
+
+        box.innerHTML = `
+          <strong>${p.projectName}</strong><br>
+          Status: ${p.status}<br>
+          Start Date: ${p.startDate}<br>
         `;
       });
 
+      loadDocuments();
       loadPhotos();
       loadPayments();
     }
 
+    /* ---------------------------------------------------------
+       LOAD DOCUMENT VAULT
+    --------------------------------------------------------- */
+    async function loadDocuments() {
+      const list = document.getElementById("documentList");
+      list.innerHTML = "";
+
+      const snap = await getDocs(
+        collection(db, "projects", projectId, "documents")
+      );
+
+      if (snap.empty) {
+        list.innerHTML = "No documents uploaded yet.";
+        return;
+      }
+
+      snap.forEach(docSnap => {
+        const d = docSnap.data();
+
+        const div = document.createElement("div");
+        div.className = "document-card";
+
+        div.innerHTML = `
+          <div class="category-tag">${d.category}</div><br>
+          <strong>${d.fileName}</strong><br>
+          Uploaded: ${new Date(d.timestamp).toLocaleString()}<br><br>
+          <a href="${d.url}" target="_blank">
+            <button>View / Download</button>
+          </a>
+        `;
+
+        list.appendChild(div);
+      });
+    }
+
+    /* ---------------------------------------------------------
+       LOAD PHOTOS
+    --------------------------------------------------------- */
     async function loadPhotos() {
       const gallery = document.getElementById("photoGallery");
       gallery.innerHTML = "";
@@ -104,66 +164,76 @@
         collection(db, "projects", projectId, "phases")
       );
 
-      phasesSnap.forEach(async (phaseDoc) => {
+      let found = false;
+
+      for (const phaseDoc of phasesSnap.docs) {
         const phaseId = phaseDoc.id;
 
         const photosSnap = await getDocs(
           collection(db, "projects", projectId, "phases", phaseId, "photos")
         );
 
-        photosSnap.forEach(pdoc => {
-          const url = pdoc.data().url;
-          const card = document.createElement("div");
-          card.className = "card";
+        photosSnap.forEach(photoDoc => {
+          found = true;
 
+          const url = photoDoc.data().url;
           const img = document.createElement("img");
           img.src = url;
-          img.style.width = "120px";
-          img.style.borderRadius = "6px";
+          img.className = "doc-thumbnail";
 
-          card.appendChild(img);
-          gallery.appendChild(card);
+          gallery.appendChild(img);
         });
-      });
+      }
 
-      if (!gallery.innerHTML) {
-        gallery.textContent = "No photos yet.";
+      if (!found) {
+        gallery.innerHTML = "No photos yet.";
       }
     }
 
+    /* ---------------------------------------------------------
+       LOAD PAYMENTS
+    --------------------------------------------------------- */
     async function loadPayments() {
       const list = document.getElementById("paymentList");
       list.innerHTML = "";
 
-      const paymentsSnap = await getDocs(
+      const snap = await getDocs(
         collection(db, "projects", projectId, "payments")
       );
 
-      paymentsSnap.forEach(docSnap => {
+      if (snap.empty) {
+        list.innerHTML = "No payments recorded yet.";
+        return;
+      }
+
+      snap.forEach(docSnap => {
         const p = docSnap.data();
+
         const div = document.createElement("div");
         div.className = "card";
+
         div.innerHTML = `
           Amount: $${p.amount}<br>
           Date: ${p.date}<br>
         `;
+
         list.appendChild(div);
       });
-
-      if (paymentsSnap.empty) {
-        list.textContent = "No payments recorded yet.";
-      }
     }
 
-    document.getElementById("logoutBtn").addEventListener("click", logout);
-
+    /* ---------------------------------------------------------
+       AUTH WATCHER
+    --------------------------------------------------------- */
     onAuthStateChanged(auth, (user) => {
       if (!user) {
         window.location.href = "index.html";
         return;
       }
+
       loadProject(user);
     });
+
+    document.getElementById("logoutBtn").addEventListener("click", logout);
   </script>
 
 </body>
