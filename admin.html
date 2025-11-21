@@ -89,6 +89,17 @@
 function managePhases(projectId) {
   window.location.href = "phases.html?projectId=" + projectId;
 }
+    <h2>Add Customer Payment</h2>
+<input id="payProjectId" placeholder="Project ID">
+<input id="payAmount" placeholder="Amount">
+<input id="payDate" type="date">
+<button onclick="addPayment()">Record Payment</button>
+<p id="payResult"></p>
+
+<h2>View Payments by Project</h2>
+<input id="viewPayProjectId" placeholder="Project ID">
+<button onclick="loadPayments()">Load Payments</button>
+<div id="paymentsList"></div>
   </script>
 </body>
 </body>
