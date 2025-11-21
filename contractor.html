@@ -1,107 +1,212 @@
-<body>
-  <h1>Contractor Dashboard</h1>
-
-  <h2>Your Assigned Phases</h2>
-  <div id="phaseList">Loading...</div>
-
-  <h2>Upload Daily Photo</h2>
-  <input type="file" id="photoFile">
-  <button onclick="uploadPhoto()">Upload</button>
-  <p id="uploadStatus"></p>
-
-  <br><br>
-  <button onclick="logout()">Logout</button>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Contractor Dashboard</title>
+  <link rel="stylesheet" href="style.css">
 
   <script type="module">
-    import { signOut } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
-    import {
-      collection, getDocs, query, where, addDoc
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+    import { 
+      getAuth, onAuthStateChanged, signOut 
+    } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+    import { 
+      getFirestore,
+      collectionGroup,
+      query,
+      where,
+      getDocs,
+      doc,
+      updateDoc,
+      collection,
+      addDoc
     } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
-    import {
-      ref, uploadBytes, getDownloadURL
+    import { 
+      getStorage,
+      ref,
+      uploadBytes,
+      getDownloadURL
     } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-storage.js";
 
-    async function logout() {
-      await signOut(window.auth);
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyB0Rj0mJmvfG_iK6ZGTl_UgiTCv8J_Y1Dv0",
+      authDomain: "construction-management-f48cb.firebaseapp.com",
+      projectId: "construction-management-f48cb",
+      storageBucket: "construction-management-f48cb.appspot.com",
+      messagingSenderId: "1013804592434",
+      appId: "1:1013804592434:web:79226b78462dbfbd519f2b"
+    };
+
+    // Init Firebase
+    const app   = initializeApp(firebaseConfig);
+    const auth  = getAuth(app);
+    const db    = getFirestore(app);
+    const store = getStorage(app);
+
+    let selectedTask = null; // { projectId, phaseId, taskId }
+
+    // Logout
+    async function doLogout() {
+      await signOut(auth);
       window.location.href = "index.html";
     }
 
-    let assignedPhases = [];
-    let currentPhaseId = null;
-    let currentProjectId = null;
+    // Load tasks assigned to this contractor
+    async function loadTasks(user) {
+      const list = document.getElementById("taskList");
+      list.innerHTML = "Loading...";
 
-    // Load contractor phases
-    async function loadPhases() {
-      const user = window.auth.currentUser;
+      const q = query(
+        collectionGroup(db, "tasks"),
+        where("assignedTo", "==", user.uid)
+      );
 
-      const phaseList = document.getElementById("phaseList");
-      phaseList.innerHTML = "";
+      const snap = await getDocs(q);
+      list.innerHTML = "";
 
-      // Search all projects → all phases where assignedTo = user.uid
-      const projectsSnap = await getDocs(collection(window.db, "projects"));
+      snap.forEach(taskDoc => {
+        const data = taskDoc.data();
 
-      projectsSnap.forEach(async (projectDoc) => {
-        const projectId = projectDoc.id;
+        // path: projects/{pid}/phases/{phaseId}/tasks/{taskId}
+        const parts = taskDoc.ref.path.split("/");
+        const projectId = parts[1];
+        const phaseId   = parts[3];
+        const taskId    = parts[5];
 
-        const phasesSnap = await getDocs(
-          query(
-            collection(window.db, "projects", projectId, "phases"),
-            where("assignedTo", "==", user.uid)
-          )
-        );
+        const div = document.createElement("div");
+        div.style.background = "#eee";
+        div.style.padding = "10px";
+        div.style.margin = "10px 0";
+        div.style.borderRadius = "6px";
 
-        phasesSnap.forEach(phaseDoc => {
-          const data = phaseDoc.data();
+        div.innerHTML = `
+          <strong>${data.taskName}</strong><br>
+          Project: ${projectId}<br>
+          Phase: ${phaseId}<br>
+          Due: ${data.dueDate}<br>
+          Status: ${data.status}<br>
+          <button class="select-btn">Select This Task</button>
+        `;
 
-          const div = document.createElement("div");
-          div.style.background = "#eee";
-          div.style.padding = "10px";
-          div.style.margin = "10px 0";
-          div.style.borderRadius = "6px";
-          div.style.cursor = "pointer";
-
-          div.innerHTML = `
-            <strong>${data.phaseName}</strong><br>
-            Due: ${data.dueDate}<br>
-            Status: ${data.status}
-          `;
-
-          div.onclick = () => {
-            currentPhaseId = phaseDoc.id;
-            currentProjectId = projectId;
-          };
-
-          phaseList.appendChild(div);
+        div.querySelector(".select-btn").addEventListener("click", () => {
+          selectedTask = { projectId, phaseId, taskId };
+          document.getElementById("selectedTask").innerText =
+            "Selected Task: " + data.taskName;
         });
+
+        list.appendChild(div);
       });
+
+      if (!snap.size) {
+        list.innerHTML = "No tasks assigned to you yet.";
+      }
     }
 
-    loadPhases();
-
-    // Upload daily photo
+    // Upload photo for selected task (goes to phase photos)
     async function uploadPhoto() {
-      if (!currentPhaseId || !currentProjectId) {
-        alert("Select a phase first.");
+      if (!selectedTask) {
+        alert("Select a task first.");
         return;
       }
 
-      const file = document.getElementById("photoFile").files[0];
+      const fileInput = document.getElementById("photoFile");
+      const file = fileInput.files[0];
+
       if (!file) {
         alert("Choose a photo first.");
         return;
       }
 
-      const storageRef = ref(window.storage, `photos/${currentProjectId}/${currentPhaseId}/${file.name}`);
+      const { projectId, phaseId } = selectedTask;
+
+      const storageRef = ref(
+        store,
+        `photos/${projectId}/${phaseId}/${Date.now()}_${file.name}`
+      );
+
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
 
-      // Save photo URL
+      // Save URL under phase photos
       await addDoc(
-        collection(window.db, "projects", currentProjectId, "phases", currentPhaseId, "photos"),
-        { url, timestamp: new Date().toISOString() }
+        collection(db, "projects", projectId, "phases", phaseId, "photos"),
+        {
+          url,
+          timestamp: new Date().toISOString()
+        }
       );
 
       document.getElementById("uploadStatus").innerText = "Photo uploaded!";
+      fileInput.value = "";
     }
+
+    // Mark selected task complete
+    async function markTaskComplete() {
+      if (!selectedTask) {
+        alert("Select a task first.");
+        return;
+      }
+
+      const { projectId, phaseId, taskId } = selectedTask;
+
+      const tRef = doc(
+        db,
+        "projects",
+        projectId,
+        "phases",
+        phaseId,
+        "tasks",
+        taskId
+      );
+
+      await updateDoc(tRef, { status: "completed" });
+
+      alert("Task marked as completed.");
+      const user = auth.currentUser;
+      if (user) loadTasks(user);
+    }
+
+    // Hook up buttons once auth is ready
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "index.html";
+        return;
+      }
+
+      loadTasks(user);
+
+      document
+        .getElementById("logoutBtn")
+        .addEventListener("click", doLogout);
+
+      document
+        .getElementById("uploadBtn")
+        .addEventListener("click", uploadPhoto);
+
+      document
+        .getElementById("completeBtn")
+        .addEventListener("click", markTaskComplete);
+    });
   </script>
+</head>
+
+<body>
+  <h1>Contractor Dashboard</h1>
+
+  <h2>Your Tasks</h2>
+  <div id="taskList">Loading...</div>
+
+  <h3 id="selectedTask">Selected Task: none</h3>
+
+  <h2>Daily Photo Upload</h2>
+  <input type="file" id="photoFile">
+  <button id="uploadBtn">Upload Photo</button>
+  <p id="uploadStatus"></p>
+
+  <h2>Task Status</h2>
+  <button id="completeBtn">Mark Selected Task Complete</button>
+
+  <br><br>
+  <button id="logoutBtn">Logout</button>
 </body>
+</html>
