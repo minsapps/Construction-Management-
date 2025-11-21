@@ -1,24 +1,48 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
   <title>Project Photos</title>
   <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
+
   <div class="navbar">
-  Construction Management App
-</div>
+    Construction Management App - Photos
+  </div>
+
   <h1>Project Photos</h1>
 
   <div id="gallery">Loading...</div>
 
-  <button onclick="goBack()">Back</button>
+  <button id="backBtn">Back</button>
+
+  <br><br><br>
 
   <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
     import {
-      collection, getDocs
+      getAuth,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+    import {
+      getFirestore,
+      collection,
+      getDocs
     } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB0Rj0mJmvfG_iK6ZGTl_UgiTCv8J_Y1Dv0",
+      authDomain: "construction-management-f48cb.firebaseapp.com",
+      projectId: "construction-management-f48cb",
+      storageBucket: "construction-management-f48cb.appspot.com",
+      messagingSenderId: "1013804592434",
+      appId: "1:1013804592434:web:79226b78462dbfbd519f2b"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
     const url = new URL(window.location.href);
     const projectId = url.searchParams.get("projectId");
@@ -28,36 +52,47 @@
       gallery.innerHTML = "";
 
       const phasesSnap = await getDocs(
-        collection(window.db, "projects", projectId, "phases")
+        collection(db, "projects", projectId, "phases")
       );
 
       phasesSnap.forEach(async (phaseDoc) => {
         const phaseId = phaseDoc.id;
 
         const photosSnap = await getDocs(
-          collection(window.db, "projects", projectId, "phases", phaseId, "photos")
+          collection(db, "projects", projectId, "phases", phaseId, "photos")
         );
 
         photosSnap.forEach(pdoc => {
           const url = pdoc.data().url;
 
+          const card = document.createElement("div");
+          card.className = "card";
+
           const img = document.createElement("img");
           img.src = url;
           img.style.width = "150px";
-          img.style.margin = "5px";
-          img.style.border = "1px solid #ccc";
           img.style.borderRadius = "6px";
 
-          gallery.appendChild(img);
+          card.appendChild(img);
+          gallery.appendChild(card);
         });
       });
+
+      if (!gallery.innerHTML) {
+        gallery.textContent = "No photos yet.";
+      }
     }
 
-    function goBack() {
-      window.history.back();
-    }
+    document.getElementById("backBtn").addEventListener("click", () => window.history.back());
 
-    loadPhotos();
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "index.html";
+        return;
+      }
+      loadPhotos();
+    });
   </script>
+
 </body>
 </html>
