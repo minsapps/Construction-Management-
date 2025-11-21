@@ -1,53 +1,41 @@
-// Firebase CDN imports
-import { initializeApp } 
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword }
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, setDoc }
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+// Load Firebase using CDN (because GitHub Pages cannot use import statements)
 
-// Your Firebase configuration
+// Your Firebase config from the screenshot
 const firebaseConfig = {
-  apiKey: "AIzaSyBQJmJmvfG_iK62GTL_UgiTCv8J_Y1Dv0",
+  apiKey: "AIzaSyB0QjmJmvfG_iK62GTL_UgiTcv8J_Y1Dv0",
   authDomain: "construction-management-f48cb.firebaseapp.com",
   projectId: "construction-management-f48cb",
   storageBucket: "construction-management-f48cb.appspot.com",
-  messagingSenderId: "1013804592434",
-  appId: "1:1013804592434:web:79226b78462dbfd519f2b"
+  messagingSenderId: "1013084592344",
+  appId: "1:1013084592344:web:79226b78462dbfbd519f2b"
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+const app = firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
 
-// CREATE ADMIN
-window.createAdmin = async function () {
+// Admin Account Creation
+async function createAdmin() {
   const email = document.getElementById("adminEmail").value;
   const password = document.getElementById("adminPassword").value;
 
   try {
-    const userCred = await createUserWithEmailAndPassword(auth, email, password);
-    await setDoc(doc(db, "users", userCred.user.uid), {
-      role: "admin",
-      email: email
-    });
-
-    alert("Admin created successfully!");
+    await auth.createUserWithEmailAndPassword(email, password);
+    alert("Admin account created!");
   } catch (error) {
-    alert(error.message);
+    alert("Firebase Error: " + error.message);
   }
-};
+}
 
-// LOGIN
-window.login = async function () {
+// Login Function
+async function loginUser() {
   const email = document.getElementById("loginEmail").value;
   const password = document.getElementById("loginPassword").value;
 
   try {
-    await signInWithEmailAndPassword(auth, email, password);
-    alert("Logged in successfully!");
+    await auth.signInWithEmailAndPassword(email, password);
+    window.location.href = "admin.html";
   } catch (error) {
-    alert(error.message);
+    alert("Login Error: " + error.message);
   }
-};
+}
