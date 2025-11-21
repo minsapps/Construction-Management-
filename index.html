@@ -1,67 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Construction Management Login</title>
+    <title>Construction Management Login</title>
+    <meta charset="UTF-8" />
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 </head>
+
 <body>
 
-<h2>Create Admin Account</h2>
-<input id="adminEmail" type="text" placeholder="Email"><br><br>
-<input id="adminPassword" type="password" placeholder="Password"><br><br>
-<button onclick="createAdmin()">Create Admin</button>
+    <h2>Create Admin Account</h2>
+    <input id="adminEmail" type="email" placeholder="Email" /><br><br>
+    <input id="adminPassword" type="password" placeholder="Password" /><br><br>
+    <button onclick="createAdmin()">Create Admin</button>
 
-<hr>
+    <h2>Login</h2>
+    <input id="loginEmail" type="email" placeholder="Email" /><br><br>
+    <input id="loginPassword" type="password" placeholder="Password" /><br><br>
+    <button onclick="loginUser()">Login</button>
 
-<h2>Login</h2>
-<input id="loginEmail" type="text" placeholder="Email"><br><br>
-<input id="loginPassword" type="password" placeholder="Password"><br><br>
-<button onclick="loginUser()">Login</button>
-
-<!-- Firebase CDN -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-
-<script>
-// FIXED FIREBASE CONFIG
-const firebaseConfig = {
-  apiKey: "AIzaSyB0QjmJmvfG_iK62GTL_UgiTcv8J_Y1Dv0",
-  authDomain: "construction-management-f48cb.firebaseapp.com",
-  projectId: "construction-management-f48cb",
-  storageBucket: "construction-management-f48cb.appspot.com",
-  messagingSenderId: "1013084592344",
-  appId: "1:1013084592344:web:79226b78462dbfbd519f2b"
-};
-
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-
-// Create admin account
-async function createAdmin() {
-  const email = document.getElementById("adminEmail").value;
-  const password = document.getElementById("adminPassword").value;
-
-  try {
-    await auth.createUserWithEmailAndPassword(email, password);
-    alert("Admin Created!");
-  } catch (err) {
-    alert("Firebase Error: " + err.message);
-  }
-}
-
-// Login function
-async function loginUser() {
-  const email = document.getElementById("loginEmail").value;
-  const password = document.getElementById("loginPassword").value;
-
-  try {
-    await auth.signInWithEmailAndPassword(email, password);
-    alert("Login Success!");
-  } catch (err) {
-    alert("Login Error: " + err.message);
-  }
-}
-</script>
+    <!-- IMPORTANT: Cache-busted script -->
+    <script src="script.js?v=20"></script>
 
 </body>
 </html>
