@@ -1,88 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
     <title>Construction Management Login</title>
-
-    <!-- Firebase v8 CDN Libraries -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f3f3f3;
-            margin: 0;
-            padding: 30px;
-        }
-
-        .container {
-            width: 400px;
-            margin: auto;
-            background: white;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.15);
-        }
-
-        h2 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        input {
-            width: 100%;
-            padding: 10px;
-            margin: 8px 0 15px 0;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-
-        button {
-            width: 100%;
-            padding: 12px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 15px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background-color: #0056b3;
-        }
-
-        .section {
-            margin-top: 30px;
-        }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 
 <body>
 
-    <!-- CREATE ADMIN -->
-    <div class="container">
-        <h2>Create Admin Account</h2>
+<h2>Create Admin Account</h2>
+<input type="email" id="adminEmail" placeholder="Admin Email"><br><br>
+<input type="password" id="adminPassword" placeholder="Admin Password"><br><br>
+<button onclick="createAdmin()">Create Admin</button>
 
-        <input type="email" id="adminEmail" placeholder="Admin Email">
-        <input type="password" id="adminPassword" placeholder="Admin Password">
+<hr>
 
-        <button onclick="createAdmin()">Create Admin</button>
-    </div>
+<h2>Login</h2>
+<input type="email" id="loginEmail" placeholder="Email"><br><br>
+<input type="password" id="loginPassword" placeholder="Password"><br><br>
+<button onclick="loginUser()">Login</button>
 
-    <!-- LOGIN -->
-    <div class="container section">
-        <h2>Login</h2>
+<!-- FIREBASE CDN (v8 compat) -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 
-        <input type="email" id="loginEmail" placeholder="Email">
-        <input type="password" id="loginPassword" placeholder="Password">
-
-        <button onclick="loginUser()">Login</button>
-    </div>
-
-    <!-- FORCE CACHE REFRESH of script.js -->
-    <script src="script.js?v=1002"></script>
+<!-- YOUR SCRIPT (FORCE REFRESH WITH A VERSION NUMBER) -->
+<script src="script.js?v=3001"></script>
 
 </body>
 </html>
