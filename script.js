@@ -1,34 +1,35 @@
-// --- FIREBASE INITIALIZATION (v8 CDN format) ---
-
+// ---------- FIREBASE CONFIG (NEW WORKING ONE) ----------
 var firebaseConfig = {
     apiKey: "AIzaSyB0QjmJmvfG_iK62GTL_UgiTcv8J_Y1Dv0",
     authDomain: "construction-management-f48cb.firebaseapp.com",
     projectId: "construction-management-f48cb",
     storageBucket: "construction-management-f48cb.appspot.com",
     messagingSenderId: "1013084592344",
-    appId: "1:1013084592344:web:79226b78462dbfbd519f2b"
+    appId: "1:1013084592344:web:1ac50bf8085ce443519f2b"
 };
 
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 
-// Get auth service
+// Firebase Auth
 const auth = firebase.auth();
 
-// Create Admin
+
+// Create Admin Account
 async function createAdmin() {
     const email = document.getElementById("adminEmail").value;
     const password = document.getElementById("adminPassword").value;
 
     try {
         await auth.createUserWithEmailAndPassword(email, password);
-        alert("Admin Created!");
+        alert("Admin account created!");
     } catch (error) {
         alert("ERROR: " + error.message);
     }
 }
 
-// Login
+
+// Login Function
 async function loginUser() {
     const email = document.getElementById("loginEmail").value;
     const password = document.getElementById("loginPassword").value;
