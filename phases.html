@@ -8,110 +8,153 @@
 
 <body>
 
-  <div class="navbar">
-    Project Phases
-    <button id="logoutBtn" class="logoutBtn">Logout</button>
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <a href="admin.html">Dashboard</a>
+    <a href="phases.html">Phases</a>
+    <a href="payments.html">Payments</a>
+    <a href="photos.html">Photos</a>
+    <a href="documentUpload.html">Documents</a>
+    <a href="#" id="logoutBtn">Logout</a>
   </div>
 
-  <h1 id="projectTitle">Loading Project...</h1>
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
 
-  <div id="phaseList" class="card">Loading phases...</div>
+    <h1 id="projectName">PHASES</h1>
 
-  <h2>Add / Update Phase</h2>
-  <div class="card">
-    <input id="phaseName" placeholder="Phase name (e.g., Framing)">
-    <select id="phaseStatus">
-      <option value="pending">Pending</option>
-      <option value="in-progress">In Progress</option>
-      <option value="complete">Complete</option>
-    </select>
+    <div class="card">
+      <h2>Add / Update Phase</h2>
 
-    <button id="addPhaseBtn">Add / Update Phase</button>
-    <p id="phaseStatusUpdate"></p>
-  </div>
+      <label>Phase Name</label>
+      <input id="phaseName" placeholder="e.g., Framing, Plumbing, Roofing">
+
+      <label>Phase Status</label>
+      <select id="phaseStatus">
+        <option value="pending">Pending</option>
+        <option value="in-progress">In Progress</option>
+        <option value="complete">Complete</option>
+      </select>
+
+      <button id="savePhaseBtn">Add / Update Phase</button>
+      <p id="phaseStatusText"></p>
+    </div>
+
+    <hr>
+
+    <h2>Existing Phases</h2>
+    <div id="phaseList">Loading...</div>
+
+  </div> <!-- end main-content -->
 
   <script type="module">
-    import { auth, db } from "./global.js";
     import {
-      onAuthStateChanged,
-      signOut
+      initializeApp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+    import {
+      getAuth,
+      signOut,
+      onAuthStateChanged
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     import {
+      getFirestore,
       doc,
-      getDoc,
-      setDoc,
-      getDocs,
+      collection,
       addDoc,
-      collection
+      getDocs,
+      updateDoc
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    /* -------- LOGOUT -------- */
-    document.getElementById("logoutBtn").onclick = async () => {
-      await signOut(auth);
-      window.location.href = "index.html";
+    /* FIREBASE */
+    const firebaseConfig = {
+      apiKey: "AIzaSyB7GclJLT79eSM0WAYAcWSYm-VMYTbJFPk",
+      authDomain: "construction-management-f48cb.firebaseapp.com",
+      projectId: "construction-management-f48cb",
+      storageBucket: "construction-management-f48cb.appspot.com",
+      messagingSenderId: "1013804592434",
+      appId: "1:1013804592434:web:79226b78462dbfbd519f2b"
     };
 
-    /* -------- GET PROJECT ID FROM URL -------- */
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    /* GET PROJECT ID FROM URL */
     const urlParams = new URLSearchParams(window.location.search);
     const projectId = urlParams.get("projectId");
+    document.getElementById("projectName").innerText = "PHASES — " + projectId;
 
-    /* -------- AUTH + LOAD PHASES -------- */
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) return window.location.href = "index.html";
-
-      loadProject();
-      loadPhases();
-    });
-
-    /* -------- LOAD PROJECT INFO -------- */
-    async function loadProject() {
-      const snap = await getDoc(doc(db, "projects", projectId));
-      if (!snap.exists()) {
-        document.getElementById("projectTitle").innerHTML = "Project not found";
-        return;
-      }
-      document.getElementById("projectTitle").innerHTML =
-        snap.data().projectName + " — Phases";
-    }
-
-    /* -------- LOAD PHASES -------- */
+    /* LOAD PHASES */
     async function loadPhases() {
       const list = document.getElementById("phaseList");
-      list.innerHTML = "Loading...";
+      list.innerHTML = "";
 
       const snap = await getDocs(collection(db, "projects", projectId, "phases"));
-      list.innerHTML = "";
+
+      if (snap.empty) {
+        list.innerHTML = "No phases yet.";
+        return;
+      }
 
       snap.forEach(docSnap => {
         const p = docSnap.data();
         const div = document.createElement("div");
-        div.className = "innerCard";
+        div.className = "card";
         div.innerHTML = `
           <strong>${p.name}</strong><br>
           Status: ${p.status}<br>
-          Updated: ${p.updated}<br>
+          <button onclick="editPhase('${docSnap.id}', '${p.name}', '${p.status}')">Edit</button>
         `;
         list.appendChild(div);
       });
     }
 
-    /* -------- ADD / UPDATE PHASE -------- */
-    document.getElementById("addPhaseBtn").onclick = async () => {
+    window.editPhase = function (id, name, status) {
+      document.getElementById("phaseName").value = name;
+      document.getElementById("phaseStatus").value = status;
+      document.getElementById("savePhaseBtn").setAttribute("data-id", id);
+    };
+
+    /* SAVE PHASE */
+    document.getElementById("savePhaseBtn").addEventListener("click", async () => {
       const name = document.getElementById("phaseName").value;
       const status = document.getElementById("phaseStatus").value;
+      const existingId = document.getElementById("savePhaseBtn").getAttribute("data-id");
 
-      if (!name) return alert("Phase name required.");
+      if (!name) {
+        alert("Enter phase name.");
+        return;
+      }
 
-      await addDoc(collection(db, "projects", projectId, "phases"), {
-        name,
-        status,
-        updated: new Date().toISOString()
-      });
+      if (existingId) {
+        await updateDoc(doc(db, "projects", projectId, "phases", existingId), {
+          name,
+          status
+        });
+      } else {
+        await addDoc(collection(db, "projects", projectId, "phases"), {
+          name,
+          status
+        });
+      }
 
-      document.getElementById("phaseStatusUpdate").innerHTML = "Updated!";
+      document.getElementById("phaseStatusText").innerText = "Saved!";
       loadPhases();
-    };
+    });
+
+    /* LOGOUT */
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      await signOut(auth);
+      window.location.href = "index.html";
+    });
+
+    /* AUTH CHECK */
+    onAuthStateChanged(auth, user => {
+      if (!user) window.location.href = "index.html";
+      else loadPhases();
+    });
   </script>
 
 </body>
