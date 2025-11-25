@@ -3,11 +3,90 @@
 <head>
   <meta charset="UTF-8">
   <title>Customer Dashboard</title>
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<h1>Welcome, Customer!</h1>
-<p>This is your project dashboard. Full features coming next.</p>
+  <div class="navbar">
+    Customer Dashboard
+    <button id="logoutBtn" class="logoutBtn">Logout</button>
+  </div>
+
+  <h1>Your Project</h1>
+
+  <div id="projectContainer" class="card">Loading...</div>
+
+  <h2>Project Sections</h2>
+  <div class="card">
+    <button id="phasesBtn">View Phases</button>
+    <button id="paymentsBtn">View Payments</button>
+    <button id="photosBtn">View Photos</button>
+    <button id="docsBtn">View Documents</button>
+  </div>
+
+  <script type="module">
+    import { auth, db } from "./global.js";
+    import { 
+      onAuthStateChanged, 
+      signOut 
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    import {
+      doc,
+      getDoc,
+      getDocs,
+      collection,
+      query,
+      where
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    /* -------- LOGOUT -------- */
+    document.getElementById("logoutBtn").onclick = async () => {
+      await signOut(auth);
+      window.location.href = "index.html";
+    };
+
+    /* -------- AUTH PROTECT + LOAD PROJECT -------- */
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) return window.location.href = "index.html";
+
+      const uSnap = await getDoc(doc(db, "users", user.uid));
+      if (!uSnap.exists() || uSnap.data().role !== "customer") {
+        alert("Access denied.");
+        return window.location.href = "index.html";
+      }
+
+      // Load project assigned (first match)
+      const q = query(collection(db, "projects"), where("customerId", "==", user.uid));
+      const pSnap = await getDocs(q);
+
+      if (pSnap.empty) {
+        document.getElementById("projectContainer").innerHTML = "No project assigned.";
+        return;
+      }
+
+      let pid = "";
+      let pdata = {};
+
+      pSnap.forEach(docSnap => {
+        pid = docSnap.id;
+        pdata = docSnap.data();
+      });
+
+      document.getElementById("projectContainer").innerHTML = `
+        <strong>${pdata.projectName}</strong><br>
+        Project ID: ${pid}<br>
+        Status: ${pdata.status}<br>
+      `;
+
+      // Page redirects
+      document.getElementById("phasesBtn").onclick = () => window.location.href = `phases.html?projectId=${pid}`;
+      document.getElementById("paymentsBtn").onclick = () => window.location.href = `payments.html?projectId=${pid}`;
+      document.getElementById("photosBtn").onclick = () => window.location.href = `photos.html?projectId=${pid}`;
+      document.getElementById("docsBtn").onclick = () => window.location.href = `document-upload.html?projectId=${pid}`;
+    });
+  </script>
 
 </body>
 </html>
