@@ -5,124 +5,123 @@
   <title>Project Photos</title>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
   <div class="navbar">
-    Construction Management App — Photos
+    Project Photos
+    <button id="logoutBtn" class="logoutBtn">Logout</button>
   </div>
 
-  <h1>All Project Photos</h1>
+  <h1 id="title">Photos</h1>
 
-  <div id="gallery">Loading...</div>
+  <!-- Photos Display -->
+  <div class="card">
+    <h2>Project Gallery</h2>
+    <div id="photoGallery">Loading...</div>
+  </div>
 
-  <button id="backBtn">Back</button>
+  <!-- Upload Photo (Admin + Sub Only) -->
+  <div class="card" id="uploadSection" style="display:none;">
+    <h2>Upload Photo</h2>
 
-  <div class="page-end"></div>
+    <input id="photoPhase" placeholder="Phase (optional)">
+    <input type="file" id="photoFile">
+
+    <button id="uploadBtn">Upload Photo</button>
+    <p id="uploadStatus"></p>
+  </div>
 
   <script type="module">
-
-    /* ---------------------------------------------------------
-       FIREBASE IMPORTS
-    --------------------------------------------------------- */
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-
+    import { auth, db, storage } from "./global.js";
     import {
-      getAuth,
-      onAuthStateChanged
+      onAuthStateChanged,
+      signOut
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     import {
-      getFirestore,
-      collection,
-      getDocs
+      doc,
+      getDoc,
+      addDoc,
+      getDocs,
+      collection
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    /* ---------------------------------------------------------
-       FIREBASE INIT
-    --------------------------------------------------------- */
-    const firebaseConfig = {
-      apiKey: "AIzaSyB0Rj0mJmvfG_iK6ZGTl_UgiTCv8J_Y1Dv0",
-      authDomain: "construction-management-f48cb.firebaseapp.com",
-      projectId: "construction-management-f48cb",
-      storageBucket: "construction-management-f48cb.appspot.com",
-      messagingSenderId: "1013804592434",
-      appId: "1:1013804592434:web:79226b78462dbfbd519f2b"
+    import {
+      ref,
+      uploadBytes,
+      getDownloadURL
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
+    /* -------- LOGOUT -------- */
+    document.getElementById("logoutBtn").onclick = async () => {
+      await signOut(auth);
+      window.location.href = "index.html";
     };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+    /* -------- GET PROJECT ID -------- */
+    const params = new URLSearchParams(window.location.search);
+    const projectId = params.get("projectId");
 
-    /* ---------------------------------------------------------
-       GET PROJECT ID FROM URL
-    --------------------------------------------------------- */
-    const url = new URL(window.location.href);
-    const projectId = url.searchParams.get("projectId");
+    let userRole = "";
 
-    if (!projectId) {
-      alert("Missing projectId");
-      window.location.href = "admin.html";
-    }
+    /* -------- AUTH PROTECT + LOAD PHOTOS -------- */
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) window.location.href = "index.html";
 
-    /* ---------------------------------------------------------
-       LOAD PHOTOS ACROSS ALL PHASES
-    --------------------------------------------------------- */
-    async function loadPhotos() {
-      const gallery = document.getElementById("gallery");
-      gallery.innerHTML = "";
+      const u = await getDoc(doc(db, "users", user.uid));
+      userRole = u.data().role;
 
-      const phasesSnap = await getDocs(
-        collection(db, "projects", projectId, "phases")
-      );
-
-      let found = false;
-
-      for (const phaseDoc of phasesSnap.docs) {
-        const phaseId = phaseDoc.id;
-
-        const photosSnap = await getDocs(
-          collection(db, "projects", projectId, "phases", phaseId, "photos")
-        );
-
-        photosSnap.forEach(photoDoc => {
-          found = true;
-          const url = photoDoc.data().url;
-
-          const wrapper = document.createElement("div");
-          wrapper.className = "card";
-
-          const img = document.createElement("img");
-          img.src = url;
-          img.style.width = "150px";
-          img.style.borderRadius = "6px";
-
-          wrapper.appendChild(img);
-          gallery.appendChild(wrapper);
-        });
-      }
-
-      if (!found) {
-        gallery.innerHTML = "No photos uploaded yet.";
-      }
-    }
-
-    /* ---------------------------------------------------------
-       AUTH GUARD
-    --------------------------------------------------------- */
-    onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        window.location.href = "index.html";
-        return;
+      if (userRole === "admin" || userRole === "subcontractor") {
+        document.getElementById("uploadSection").style.display = "block";
       }
 
       loadPhotos();
     });
 
-    /* ---------------------------------------------------------
-       EVENTS
-    --------------------------------------------------------- */
-    document.getElementById("backBtn").addEventListener("click", () => window.history.back());
+    /* -------- LOAD PHOTOS -------- */
+    async function loadPhotos() {
+      const gallery = document.getElementById("photoGallery");
+      gallery.innerHTML = "Loading...";
 
+      const snap = await getDocs(collection(db, "projects", projectId, "photos"));
+      gallery.innerHTML = "";
+
+      snap.forEach(docSnap => {
+        const p = docSnap.data();
+        const div = document.createElement("div");
+        div.className = "innerCard";
+        div.innerHTML = `
+          <img src="${p.url}" style="width:100%;border-radius:8px;"><br>
+          Phase: ${p.phase || "N/A"}<br>
+          Uploaded: ${p.uploaded}<br>
+        `;
+        gallery.appendChild(div);
+      });
+    }
+
+    /* -------- UPLOAD PHOTO -------- */
+    document.getElementById("uploadBtn").onclick = async () => {
+      const phase = document.getElementById("photoPhase").value;
+      const file = document.getElementById("photoFile").files[0];
+
+      if (!file) return alert("Select a file.");
+
+      const path = `photos/${projectId}/${Date.now()}_${file.name}`;
+      const r = ref(storage, path);
+
+      await uploadBytes(r, file);
+      const url = await getDownloadURL(r);
+
+      await addDoc(collection(db, "projects", projectId, "photos"), {
+        url,
+        phase,
+        uploaded: new Date().toISOString()
+      });
+
+      document.getElementById("uploadStatus").innerHTML = "Uploaded!";
+      loadPhotos();
+    };
   </script>
 
 </body>
