@@ -1,133 +1,213 @@
-<script>
-  // Firebase v8 CDN
-  const firebaseConfig = {
-    apiKey: "AIzaSyB7GclJLT79eSM0WAYAcWSYm-VMYTbJFPk",
-    authDomain: "construction-management-f48cb.firebaseapp.com",
-    projectId: "construction-management-f48cb",
-    storageBucket: "construction-management-f48cb.appspot.com",
-    messagingSenderId: "1013804592434",
-    appId: "1:1013804592434:web:79226b78462dbfbd519f2b"
-  };
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="style.css">
 
-  firebase.initializeApp(firebaseConfig);
+  <!-- FIREBASE v8 (REQUIRED TO MATCH YOUR LOGIN PAGE) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+</head>
+<body>
 
-  const auth = firebase.auth();
-  const db = firebase.firestore();
-  const storage = firebase.storage();
+  <div class="navbar">Construction Management App — Admin</div>
 
-  /* -------- AUTH CHECK -------- */
-  auth.onAuthStateChanged(user => {
-    if (!user) {
-      window.location.href = "index.html";
-      return;
-    }
-    loadProjects();
-  });
+  <h1>Admin Dashboard</h1>
 
-  /* -------- LOAD PROJECTS -------- */
-  async function loadProjects() {
-    const container = document.getElementById("projectList");
-    container.innerHTML = "";
+  <!-- CREATE PROJECT -->
+  <div class="card">
+    <h2>Create New Project</h2>
+    <input id="projectName" placeholder="Project Name (e.g., 123 Main St)">
+    <input id="customerId" placeholder="Customer User ID">
+    <button onclick="createProject()">Create Project</button>
+    <p id="createProjectStatus"></p>
+  </div>
 
-    const snap = await db.collection("projects").get();
+  <!-- QUICK DOCUMENT UPLOAD -->
+  <div class="card">
+    <h2>Quick Upload Document</h2>
+    <input id="docProjectId" placeholder="Project ID">
 
-    if (snap.empty) {
-      container.innerHTML = "No projects found.";
-      return;
-    }
+    <label>Select Category:</label>
+    <select id="docCategory">
+      <option value="Permit">Permit</option>
+      <option value="Certificate of Occupancy (CO)">Certificate of Occupancy (CO)</option>
+      <option value="Architectural Plans">Architectural Plans</option>
+      <option value="Survey">Survey</option>
+      <option value="Insurance">Insurance</option>
+      <option value="Inspection Reports">Inspection Reports</option>
+      <option value="Contracts & Change Orders">Contracts & Change Orders</option>
+      <option value="Engineer Reports">Engineer Reports</option>
+      <option value="Zoning / Variances">Zoning / Variances</option>
+      <option value="Final Walkthrough Sheet">Final Walkthrough Sheet</option>
+      <option value="Final Photos">Final Photos</option>
+      <option value="Closing Documents">Closing Documents</option>
+      <option value="Custom">Custom</option>
+    </select>
 
-    snap.forEach(docSnap => {
-      const p = docSnap.data();
-      const div = document.createElement("div");
-      div.className = "card";
+    <input id="customCategory" placeholder="Custom Category Name (if selected)">
+    <input type="file" id="docFile">
+    <button onclick="uploadDoc()">Upload Document</button>
+    <p id="docUploadStatus"></p>
 
-      div.innerHTML = `
-        <strong>${p.projectName}</strong><br>
-        Project ID: ${docSnap.id}<br>
-        Customer: ${p.customerId}<br>
-        Status: ${p.status}<br><br>
+    <button onclick="window.location='documentUpload.html'">
+      Go to Full Document Manager
+    </button>
+  </div>
 
-        <button onclick="window.location='phases.html?projectId=${docSnap.id}'">Phases</button>
-        <button onclick="window.location='payments.html?projectId=${docSnap.id}'">Payments</button>
-        <button onclick="window.location='photos.html?projectId=${docSnap.id}'">Photos</button>
-        <button onclick="window.location='documentUpload.html?projectId=${docSnap.id}'">Documents</button>
-      `;
+  <!-- PROJECT LIST -->
+  <div class="card">
+    <h2>Projects</h2>
+    <div id="projectList">Loading...</div>
+  </div>
 
-      container.appendChild(div);
-    });
-  }
+  <button onclick="logout()">Logout</button>
 
-  /* -------- CREATE PROJECT -------- */
-  async function createProject() {
-    const name = document.getElementById("projectName").value;
-    const customerId = document.getElementById("customerId").value;
+  <!-- ADMIN LOGIC -->
+  <script>
+    /** ----------------------------------------------
+     *  FIREBASE CONFIG (NEW WORKING API KEY)
+     * ---------------------------------------------- */
+    var firebaseConfig = {
+      apiKey: "AIzaSyB7GclJLT79eSM0WAYAcWSYm-VMYTbJFPk",
+      authDomain: "construction-management-f48cb.firebaseapp.com",
+      projectId: "construction-management-f48cb",
+      storageBucket: "construction-management-f48cb.appspot.com",
+      messagingSenderId: "1013804592434",
+      appId: "1:1013804592434:web:1ac50bf8085ce443519f2b"
+    };
 
-    if (!name || !customerId) {
-      alert("Enter project name and customer ID.");
-      return;
-    }
+    firebase.initializeApp(firebaseConfig);
 
-    const newDoc = await db.collection("projects").add({
-      projectName: name,
-      customerId,
-      status: "in-progress",
-      startDate: new Date().toISOString()
-    });
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const storage = firebase.storage();
 
-    document.getElementById("createProjectStatus").innerText =
-      `Project created! ID: ${newDoc.id}`;
-
-    loadProjects();
-  }
-
-  /* -------- QUICK DOCUMENT UPLOAD -------- */
-  async function uploadDoc() {
-    const projectId = document.getElementById("docProjectId").value;
-    let category = document.getElementById("docCategory").value;
-    const custom = document.getElementById("customCategory").value;
-    const file = document.getElementById("docFile").files[0];
-
-    if (!projectId || !file) {
-      alert("Project ID and file required.");
-      return;
-    }
-
-    if (category === "Custom") {
-      if (!custom) {
-        alert("Enter a custom category name.");
+    /** ----------------------------------------------
+     *  AUTH CHECK — FIXES THE INSTANT LOGOUT ISSUE
+     * ---------------------------------------------- */
+    auth.onAuthStateChanged(user => {
+      if (!user) {
+        window.location.href = "index.html";
         return;
       }
-      category = custom;
+      loadProjects(); // Load AFTER Firebase finishes auth
+    });
+
+    /** ----------------------------------------------
+     *  LOAD PROJECTS
+     * ---------------------------------------------- */
+    async function loadProjects() {
+      const container = document.getElementById("projectList");
+      container.innerHTML = "";
+
+      const snap = await db.collection("projects").get();
+
+      if (snap.empty) {
+        container.innerHTML = "No projects found.";
+        return;
+      }
+
+      snap.forEach(docSnap => {
+        const p = docSnap.data();
+        const div = document.createElement("div");
+        div.className = "card";
+
+        div.innerHTML = `
+          <strong>${p.projectName}</strong><br>
+          Project ID: ${docSnap.id}<br>
+          Customer: ${p.customerId}<br>
+          Status: ${p.status}<br><br>
+
+          <button onclick="window.location='phases.html?projectId=${docSnap.id}'">Phases</button>
+          <button onclick="window.location='payments.html?projectId=${docSnap.id}'">Payments</button>
+          <button onclick="window.location='photos.html?projectId=${docSnap.id}'">Photos</button>
+          <button onclick="window.location='documentUpload.html?projectId=${docSnap.id}'">Documents</button>
+        `;
+
+        container.appendChild(div);
+      });
     }
 
-    const path = `documents/${projectId}/${Date.now()}_${file.name}`;
-    const storageRef = storage.ref(path);
+    /** ----------------------------------------------
+     *  CREATE PROJECT
+     * ---------------------------------------------- */
+    async function createProject() {
+      const name = document.getElementById("projectName").value;
+      const customerId = document.getElementById("customerId").value;
 
-    await storageRef.put(file);
-    const url = await storageRef.getDownloadURL();
+      if (!name || !customerId) {
+        alert("Enter project name + customer ID.");
+        return;
+      }
 
-    await db.collection("projects").doc(projectId)
-      .collection("documents").add({
-        url,
-        fileName: file.name,
-        category,
-        uploadedBy: auth.currentUser.uid,
-        timestamp: new Date().toISOString()
+      const newDoc = await db.collection("projects").add({
+        projectName: name,
+        customerId,
+        status: "in-progress",
+        startDate: new Date().toISOString()
       });
 
-    document.getElementById("docUploadStatus").innerText = 
-      `Uploaded: ${file.name}`;
-  }
+      document.getElementById("createProjectStatus").innerText =
+        `Project created! ID: ${newDoc.id}`;
 
-  /* -------- LOGOUT -------- */
-  function logout() {
-    auth.signOut().then(() => {
-      window.location = "index.html";
-    });
-  }
+      loadProjects();
+    }
 
-  /* -------- BUTTON EVENTS -------- */
-  document.getElementById("createProjectBtn").addEventListener("click", createProject);
-  document.getElementById("uploadDocBtn").addEventListener("click", uploadDoc);
-  document.getElementById("logoutBtn").addEventListener("click", logout);
-</script>
+    /** ----------------------------------------------
+     *  QUICK DOCUMENT UPLOAD
+     * ---------------------------------------------- */
+    async function uploadDoc() {
+      const projectId = document.getElementById("docProjectId").value;
+      let category = document.getElementById("docCategory").value;
+      const custom = document.getElementById("customCategory").value;
+      const file = document.getElementById("docFile").files[0];
+
+      if (!projectId || !file) {
+        alert("Project ID + file required.");
+        return;
+      }
+
+      if (category === "Custom") {
+        if (!custom) {
+          alert("Enter a custom category name.");
+          return;
+        }
+        category = custom;
+      }
+
+      const path = `documents/${projectId}/${Date.now()}_${file.name}`;
+      const storageRef = storage.ref(path);
+
+      await storageRef.put(file);
+      const url = await storageRef.getDownloadURL();
+
+      await db.collection("projects").doc(projectId)
+        .collection("documents")
+        .add({
+          url,
+          fileName: file.name,
+          category,
+          uploadedBy: auth.currentUser.uid,
+          timestamp: new Date().toISOString()
+        });
+
+      document.getElementById("docUploadStatus").innerText =
+        `Uploaded: ${file.name}`;
+    }
+
+    /** ----------------------------------------------
+     *  LOGOUT
+     * ---------------------------------------------- */
+    function logout() {
+      auth.signOut().then(() => {
+        window.location.href = "index.html";
+      });
+    }
+  </script>
+
+</body>
+</html>
