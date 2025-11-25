@@ -1,111 +1,92 @@
-/* GLOBAL PAGE STYLE */
+/* GENERAL STYLING */
 body {
   font-family: Arial, sans-serif;
-  background: #f3f4f6;
+  background: #f4f4f4;
   margin: 0;
-  padding: 20px;
+  padding: 0;
 }
 
-/* NAVIGATION BAR */
-.navbar {
-  width: 100%;
-  background: #1f2937;
-  color: white;
-  padding: 14px;
+h1, h2 {
   text-align: center;
-  font-size: 18px;
-  border-radius: 6px;
-  margin-bottom: 25px;
+  color: #333;
+}
+
+p {
+  font-size: 15px;
+}
+
+/* NAVBAR */
+.navbar {
+  background: #2e86de;
+  color: white;
+  padding: 15px;
+  font-size: 20px;
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.logoutBtn {
+  float: right;
+  margin-top: -5px;
+  padding: 8px 12px;
+  background: #d63031;
+  border: none;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
 }
 
 /* CARDS */
 .card {
   background: white;
-  padding: 18px;
-  margin: 12px 0;
+  width: 90%;
+  max-width: 600px;
+  margin: 20px auto;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+}
+
+.innerCard {
+  background: #fdfdfd;
+  padding: 12px;
   border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  margin-top: 10px;
+  box-shadow: 0 0 5px rgba(0,0,0,0.05);
 }
 
-/* HEADERS */
-h1, h2, h3 {
-  margin-top: 0;
-}
-
-/* INPUTS + BUTTONS */
-input, select {
-  width: 100%;
+/* INPUTS */
+input, select, button {
+  width: 95%;
+  margin: 8px auto;
   padding: 10px;
-  margin-top: 6px;
-  margin-bottom: 12px;
+  font-size: 16px;
+  display: block;
   border-radius: 6px;
   border: 1px solid #ccc;
-  font-size: 15px;
   box-sizing: border-box;
 }
 
 /* BUTTONS */
 button {
-  padding: 10px 16px;
-  font-size: 15px;
-  background: #2563eb;
+  background: #0984e3;
   border: none;
   color: white;
-  border-radius: 6px;
   cursor: pointer;
+  font-size: 16px;
 }
 
 button:hover {
-  background: #1d4ed8;
+  opacity: 0.9;
 }
 
-/* LOGIN BOX */
-#login-box {
-  max-width: 390px;
-  margin: 40px auto;
-  background: white;
-  padding: 25px;
+/* IMAGES */
+img {
+  width: 100%;
   border-radius: 10px;
-  box-shadow: 0px 1px 5px rgba(0,0,0,0.15);
-}
-
-/* DOCUMENT IMAGES */
-.doc-thumbnail {
-  width: 110px;
-  border-radius: 6px;
-  margin-top: 10px;
-  margin-bottom: 10px;
-  border: 1px solid #ccc;
-}
-
-/* GALLERY */
-#photoGallery img,
-#gallery img {
-  width: 150px;
-  border-radius: 8px;
-  margin: 8px;
-  border: 1px solid #ccc;
-}
-
-/* DOCUMENT CARDS */
-.document-card {
-  background: #ffffff;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 10px;
-  border-left: 5px solid #2563eb;
-}
-
-/* CATEGORY LABEL */
-.category-tag {
-  background: #2563eb;
-  color: white;
-  padding: 4px 8px;
-  border-radius: 5px;
-  font-size: 12px;
-}
-
-/* SPACING AT BOTTOM */
-.page-end {
-  height: 60px;
+  margin: 5px 0;
 }
