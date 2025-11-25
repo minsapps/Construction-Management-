@@ -5,252 +5,146 @@
   <title>Document Manager</title>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
   <div class="navbar">
-    Construction Management App — Document Manager
+    Project Documents
+    <button id="logoutBtn" class="logoutBtn">Logout</button>
   </div>
 
-  <h1>Project Document Management</h1>
+  <h1 id="title">Documents</h1>
 
+  <!-- DOCUMENT LIST -->
   <div class="card">
-    <h2>Upload New Document</h2>
+    <h2>Uploaded Documents</h2>
+    <div id="docList">Loading...</div>
+  </div>
 
-    <label>Project ID:</label>
-    <input id="projectId" placeholder="Project ID">
+  <!-- UPLOAD (ADMIN ONLY) -->
+  <div class="card" id="uploadSection" style="display:none;">
+    <h2>Upload Document</h2>
 
-    <label>Category:</label>
-    <select id="categorySelect">
+    <label>Category</label>
+    <select id="docCategory">
       <option value="Permit">Permit</option>
-      <option value="Certificate of Occupancy (CO)">Certificate of Occupancy (CO)</option>
-      <option value="Architectural Plans">Architectural Plans</option>
+      <option value="CO">Certificate of Occupancy</option>
+      <option value="Plans">Architectural Plans</option>
       <option value="Survey">Survey</option>
       <option value="Insurance">Insurance</option>
-      <option value="Inspection Reports">Inspection Reports</option>
-      <option value="Contracts & Change Orders">Contracts & Change Orders</option>
-      <option value="Engineer Reports">Engineer Reports</option>
-      <option value="Zoning / Variances">Zoning / Variances</option>
-      <option value="Final Walkthrough Sheet">Final Walkthrough Sheet</option>
-      <option value="Final Photos">Final Photos</option>
-      <option value="Closing Documents">Closing Documents</option>
+      <option value="Inspection">Inspection Report</option>
+      <option value="Contracts">Contracts / Change Orders</option>
+      <option value="Engineer">Engineer Report</option>
+      <option value="Zoning">Zoning / Variances</option>
+      <option value="Walkthrough">Final Walkthrough</option>
+      <option value="Closing">Closing Documents</option>
       <option value="Custom">Custom</option>
     </select>
 
-    <input id="customCategory" placeholder="Custom Category (if selected)">
+    <input id="customCategory" placeholder="Custom Category Name (if selected)">
+    <input type="file" id="docFile">
 
-    <label>Select File:</label>
-    <input type="file" id="fileInput">
-
-    <button id="uploadBtn">Upload Document</button>
+    <button id="uploadDocBtn">Upload</button>
     <p id="uploadStatus"></p>
   </div>
 
-  <div class="card">
-    <h2>Existing Documents</h2>
-    <div id="documentList">Loading...</div>
-  </div>
-
-  <button id="backBtn">Back</button>
-
-  <div class="page-end"></div>
-
   <script type="module">
-
-    /* ---------------------------------------------------------
-       FIREBASE IMPORTS
-    --------------------------------------------------------- */
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-
+    import { auth, db, storage } from "./global.js";
     import {
-      getAuth,
-      onAuthStateChanged
+      onAuthStateChanged,
+      signOut
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     import {
-      getFirestore,
-      collection,
+      doc,
+      getDoc,
       addDoc,
       getDocs,
-      deleteDoc,
-      doc
+      collection
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     import {
-      getStorage,
       ref,
       uploadBytes,
-      getDownloadURL,
-      deleteObject
+      getDownloadURL
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-    /* ---------------------------------------------------------
-       FIREBASE INIT
-    --------------------------------------------------------- */
-    const firebaseConfig = {
-      apiKey: "AIzaSyB0Rj0mJmvfG_iK6ZGTl_UgiTCv8J_Y1Dv0",
-      authDomain: "construction-management-f48cb.firebaseapp.com",
-      projectId: "construction-management-f48cb",
-      storageBucket: "construction-management-f48cb.appspot.com",
-      messagingSenderId: "1013804592434",
-      appId: "1:1013804592434:web:79226b78462dbfbd519f2b"
+    /* -------- LOGOUT -------- */
+    document.getElementById("logoutBtn").onclick = async () => {
+      await signOut(auth);
+      window.location.href = "index.html";
     };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const storage = getStorage(app);
+    /* -------- PROJECT ID -------- */
+    const params = new URLSearchParams(window.location.search);
+    const projectId = params.get("projectId");
 
-    /* ---------------------------------------------------------
-       GET PROJECT ID FROM URL (PREFILL)
-    --------------------------------------------------------- */
-    const url = new URL(window.location.href);
-    const urlProjectId = url.searchParams.get("projectId");
+    let userRole = "";
 
-    if (urlProjectId) {
-      document.getElementById("projectId").value = urlProjectId;
-    }
+    /* -------- AUTH + LOAD -------- */
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) return window.location.href = "index.html";
 
-    /* ---------------------------------------------------------
-       LOAD DOCUMENTS
-    --------------------------------------------------------- */
+      const u = await getDoc(doc(db, "users", user.uid));
+      userRole = u.data().role;
+
+      if (userRole === "admin") {
+        document.getElementById("uploadSection").style.display = "block";
+      }
+
+      loadDocuments();
+    });
+
+    /* -------- LOAD DOCS -------- */
     async function loadDocuments() {
-      const projectId = document.getElementById("projectId").value;
-      const list = document.getElementById("documentList");
+      const list = document.getElementById("docList");
+      list.innerHTML = "Loading...";
 
-      if (!projectId) {
-        list.innerHTML = "Enter a project ID above.";
-        return;
-      }
-
-      list.innerHTML = "Loading documents...";
-
-      const snap = await getDocs(
-        collection(db, "projects", projectId, "documents")
-      );
-
-      if (snap.empty) {
-        list.innerHTML = "No documents uploaded yet.";
-        return;
-      }
-
+      const snap = await getDocs(collection(db, "projects", projectId, "documents"));
       list.innerHTML = "";
 
       snap.forEach(docSnap => {
         const d = docSnap.data();
-        const id = docSnap.id;
 
         const div = document.createElement("div");
-        div.className = "document-card";
+        div.className = "innerCard";
 
         div.innerHTML = `
-          <div class="category-tag">${d.category}</div><br>
-          <strong>${d.fileName}</strong><br>
-          Uploaded: ${new Date(d.timestamp).toLocaleString()}<br><br>
-
-          <a href="${d.url}" target="_blank">
-            <button>View / Download</button>
-          </a>
-          <button class="deleteBtn">Delete</button>
+          <strong>${d.category}</strong><br>
+          <a href="${d.url}" target="_blank">${d.fileName}</a><br>
+          Uploaded: ${d.timestamp}<br>
         `;
-
-        div.querySelector(".deleteBtn").addEventListener("click", () => {
-          deleteDocument(projectId, id, d.url);
-        });
 
         list.appendChild(div);
       });
     }
 
-    /* ---------------------------------------------------------
-       UPLOAD DOCUMENT
-    --------------------------------------------------------- */
-    async function uploadDocument() {
-      const projectId = document.getElementById("projectId").value;
-      let category = document.getElementById("categorySelect").value;
+    /* -------- UPLOAD DOC (ADMIN) -------- */
+    document.getElementById("uploadDocBtn").onclick = async () => {
+      const cat = document.getElementById("docCategory").value;
       const custom = document.getElementById("customCategory").value;
-      const file = document.getElementById("fileInput").files[0];
+      const file = document.getElementById("docFile").files[0];
 
-      if (!projectId) {
-        alert("Enter a project ID.");
-        return;
-      }
-      if (!file) {
-        alert("Select a file to upload.");
-        return;
-      }
+      if (!file) return alert("Select a file.");
 
-      if (category === "Custom") {
-        if (!custom) {
-          alert("Enter a custom category name.");
-          return;
-        }
-        category = custom;
-      }
+      let categoryFinal = cat === "Custom" ? custom : cat;
 
       const path = `documents/${projectId}/${Date.now()}_${file.name}`;
-      const storageRef = ref(storage, path);
+      const r = ref(storage, path);
 
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
+      await uploadBytes(r, file);
+      const url = await getDownloadURL(r);
 
-      await addDoc(
-        collection(db, "projects", projectId, "documents"),
-        {
-          url,
-          fileName: file.name,
-          category,
-          uploadedBy: auth.currentUser.uid,
-          timestamp: new Date().toISOString()
-        }
-      );
+      await addDoc(collection(db, "projects", projectId, "documents"), {
+        url,
+        category: categoryFinal,
+        fileName: file.name,
+        timestamp: new Date().toISOString()
+      });
 
-      document.getElementById("uploadStatus").innerHTML =
-        `Uploaded: ${file.name}`;
-
+      document.getElementById("uploadStatus").innerHTML = "Uploaded!";
       loadDocuments();
-    }
-
-    /* ---------------------------------------------------------
-       DELETE DOCUMENT
-    --------------------------------------------------------- */
-    async function deleteDocument(projectId, docId, fileUrl) {
-      if (!confirm("Delete this document?")) return;
-
-      /* Delete Firestore entry */
-      await deleteDoc(
-        doc(db, "projects", projectId, "documents", docId)
-      );
-
-      /* Delete the actual file */
-      const storagePath = fileUrl.split("/o/")[1].split("?")[0];
-      const decodedPath = decodeURIComponent(storagePath);
-
-      const fileRef = ref(storage, decodedPath);
-      await deleteObject(fileRef);
-
-      loadDocuments();
-    }
-
-    /* ---------------------------------------------------------
-       AUTH GUARD
-    --------------------------------------------------------- */
-    onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        window.location.href = "index.html";
-        return;
-      }
-      if (urlProjectId) {
-        loadDocuments();
-      }
-    });
-
-    /* ---------------------------------------------------------
-       EVENTS
-    --------------------------------------------------------- */
-    document.getElementById("uploadBtn").addEventListener("click", uploadDocument);
-    document.getElementById("backBtn").addEventListener("click", () => window.history.back());
-    document.getElementById("projectId").addEventListener("change", loadDocuments);
-
+    };
   </script>
 
 </body>
