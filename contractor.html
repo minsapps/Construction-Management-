@@ -2,233 +2,117 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Contractor Dashboard</title>
+  <title>Contractor Management</title>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
   <div class="navbar">
-    Construction Management App — Contractor
+    Contractor Management
+    <button id="logoutBtn" class="logoutBtn">Logout</button>
   </div>
 
-  <h1>Your Assigned Tasks</h1>
+  <h1>Assign Subcontractors</h1>
 
+  <!-- SUB LIST -->
   <div class="card">
-    <h2>Task List</h2>
-    <div id="taskList">Loading...</div>
+    <h2>Available Subcontractors</h2>
+    <div id="subList">Loading...</div>
   </div>
 
+  <!-- CREATE TASK -->
   <div class="card">
-    <h2>Selected Task</h2>
-    <p id="selectedTask">None selected</p>
+    <h2>Create Task</h2>
+    <input id="taskTitle" placeholder="Task Title (e.g., Run Plumbing Rough)">
+    <input id="taskProjectId" placeholder="Project ID">
+    <input id="taskPhase" placeholder="Phase (optional)">
+    <input id="taskDue" type="date" placeholder="Due Date">
 
-    <h3>Upload Daily Work Photo</h3>
-    <input type="file" id="photoFile">
-    <button id="uploadBtn">Upload Photo</button>
-    <p id="uploadStatus"></p>
+    <label>Assign To:</label>
+    <select id="subSelect"></select>
 
-    <h3>Mark Task Complete</h3>
-    <button id="completeBtn">Complete Task</button>
+    <button id="createTaskBtn">Create Task</button>
+    <p id="taskStatus"></p>
   </div>
-
-  <button id="logoutBtn">Logout</button>
-
-  <div class="page-end"></div>
 
   <script type="module">
-    /* ---------------------------------------------------------
-       FIREBASE IMPORTS
-    --------------------------------------------------------- */
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-
+    import { auth, db } from "./global.js";
     import {
-      getAuth,
       onAuthStateChanged,
       signOut
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     import {
-      getFirestore,
-      collectionGroup,
+      getDocs,
       query,
       where,
-      getDocs,
-      doc,
-      updateDoc,
-      addDoc,
-      collection
+      collection,
+      addDoc
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    import {
-      getStorage,
-      ref,
-      uploadBytes,
-      getDownloadURL
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-
-
-    /* ---------------------------------------------------------
-       FIREBASE INIT
-    --------------------------------------------------------- */
-    const firebaseConfig = {
-      apiKey: "AIzaSyB0Rj0mJmvfG_iK6ZGTl_UgiTCv8J_Y1Dv0",
-      authDomain: "construction-management-f48cb.firebaseapp.com",
-      projectId: "construction-management-f48cb",
-      storageBucket: "construction-management-f48cb.appspot.com",
-      messagingSenderId: "1013804592434",
-      appId: "1:1013804592434:web:79226b78462dbfbd519f2b"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const storage = getStorage(app);
-
-    /* ---------------------------------------------------------
-       CURRENTLY SELECTED TASK
-    --------------------------------------------------------- */
-    let selected = null;
-
-    /* ---------------------------------------------------------
-       LOAD TASKS ASSIGNED TO THE CONTRACTOR
-    --------------------------------------------------------- */
-    async function loadTasks(user) {
-      const list = document.getElementById("taskList");
-      list.innerHTML = "Loading...";
-
-      const q = query(
-        collectionGroup(db, "tasks"),
-        where("assignedTo", "==", user.uid)
-      );
-
-      const snap = await getDocs(q);
-      list.innerHTML = "";
-
-      if (snap.empty) {
-        list.innerHTML = "No tasks assigned to you yet.";
-        return;
-      }
-
-      snap.forEach(taskDoc => {
-        const data = taskDoc.data();
-
-        /* Extract project + phase + task ID from path:
-           projects/{projectId}/phases/{phaseId}/tasks/{taskId}
-        */
-        const parts = taskDoc.ref.path.split("/");
-        const projectId = parts[1];
-        const phaseId = parts[3];
-        const taskId = parts[5];
-
-        const div = document.createElement("div");
-        div.className = "card";
-
-        div.innerHTML = `
-          <strong>${data.taskName}</strong><br>
-          Project: ${projectId}<br>
-          Phase: ${phaseId}<br>
-          Due Date: ${data.dueDate}<br>
-          Status: ${data.status}<br><br>
-          <button class="selectTaskBtn">Select Task</button>
-        `;
-
-        div.querySelector(".selectTaskBtn").addEventListener("click", () => {
-          selected = { projectId, phaseId, taskId, name: data.taskName };
-          document.getElementById("selectedTask").innerText =
-            `Selected: ${data.taskName}`;
-        });
-
-        list.appendChild(div);
-      });
-    }
-
-    /* ---------------------------------------------------------
-       UPLOAD PHOTO FOR SELECTED TASK
-    --------------------------------------------------------- */
-    async function uploadPhoto() {
-      if (!selected) {
-        alert("Select a task first.");
-        return;
-      }
-
-      const file = document.getElementById("photoFile").files[0];
-      if (!file) {
-        alert("Please select a photo.");
-        return;
-      }
-
-      const path = `photos/${selected.projectId}/${selected.phaseId}/${Date.now()}_${file.name}`;
-      const storageRef = ref(storage, path);
-
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-
-      await addDoc(
-        collection(db, "projects", selected.projectId, "phases", selected.phaseId, "photos"),
-        {
-          url,
-          timestamp: new Date().toISOString()
-        }
-      );
-
-      document.getElementById("uploadStatus").innerText =
-        "Photo uploaded!";
-      document.getElementById("photoFile").value = "";
-    }
-
-    /* ---------------------------------------------------------
-       MARK TASK COMPLETE
-    --------------------------------------------------------- */
-    async function completeTask() {
-      if (!selected) {
-        alert("Select a task first.");
-        return;
-      }
-
-      const taskRef = doc(
-        db,
-        "projects",
-        selected.projectId,
-        "phases",
-        selected.phaseId,
-        "tasks",
-        selected.taskId
-      );
-
-      await updateDoc(taskRef, { status: "completed" });
-
-      alert("Task marked as completed.");
-
-      /* Refresh list */
-      const user = auth.currentUser;
-      loadTasks(user);
-    }
-
-    /* ---------------------------------------------------------
-       LOGOUT
-    --------------------------------------------------------- */
-    async function logout() {
+    /* -------- LOGOUT -------- */
+    document.getElementById("logoutBtn").onclick = async () => {
       await signOut(auth);
       window.location.href = "index.html";
-    }
+    };
 
-    /* ---------------------------------------------------------
-       AUTH STATE
-    --------------------------------------------------------- */
-    onAuthStateChanged(auth, user => {
-      if (!user) {
-        window.location.href = "index.html";
-        return;
-      }
-      loadTasks(user);
+    let userRole = "";
+
+    /* -------- AUTH PROTECT + LOAD SUBS -------- */
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) window.location.href = "index.html";
+
+      const snap = await getDocs(
+        query(collection(db, "users"), where("role", "==", "subcontractor"))
+      );
+
+      const subListDiv = document.getElementById("subList");
+      const subSelect = document.getElementById("subSelect");
+      subListDiv.innerHTML = "";
+
+      snap.forEach(docSnap => {
+        const sub = docSnap.data();
+        const div = document.createElement("div");
+        div.className = "innerCard";
+
+        div.innerHTML = `
+          <strong>${sub.name}</strong><br>
+          ${sub.email}<br>
+          ID: ${docSnap.id}<br>
+        `;
+
+        subListDiv.appendChild(div);
+
+        const opt = document.createElement("option");
+        opt.value = docSnap.id;
+        opt.innerHTML = `${sub.name} (${sub.email})`;
+        subSelect.appendChild(opt);
+      });
     });
 
-    /* ---------------------------------------------------------
-       EVENTS
-    --------------------------------------------------------- */
-    document.getElementById("uploadBtn").addEventListener("click", uploadPhoto);
-    document.getElementById("completeBtn").addEventListener("click", completeTask);
-    document.getElementById("logoutBtn").addEventListener("click", logout);
+    /* -------- CREATE TASK -------- */
+    document.getElementById("createTaskBtn").onclick = async () => {
+      const title = document.getElementById("taskTitle").value;
+      const projectId = document.getElementById("taskProjectId").value;
+      const phase = document.getElementById("taskPhase").value;
+      const due = document.getElementById("taskDue").value;
+      const assignedTo = document.getElementById("subSelect").value;
+
+      if (!title || !projectId || !assignedTo) return alert("Missing fields!");
+
+      await addDoc(collection(db, "tasks"), {
+        title,
+        projectId,
+        phase,
+        due,
+        assignedTo,
+        status: "pending",
+        created: new Date().toISOString()
+      });
+
+      document.getElementById("taskStatus").innerHTML = "Task Created!";
+    };
   </script>
 
 </body>
