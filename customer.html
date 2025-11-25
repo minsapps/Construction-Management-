@@ -2,238 +2,74 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Customer Dashboard</title>
+  <title>Customer Profile</title>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
   <div class="navbar">
-    Construction Management App — Customer
+    Customer Profile
+    <button id="logoutBtn" class="logoutBtn">Logout</button>
   </div>
 
-  <h1>Your Project</h1>
+  <h1>Your Information</h1>
+
+  <div id="info" class="card">Loading...</div>
 
   <div class="card">
-    <h2>Project Info</h2>
-    <div id="projectBox">Loading...</div>
+    <button onclick="window.location.href='customer-dashboard.html'">Go to Dashboard</button>
   </div>
-
-  <div class="card">
-    <h2>Document Vault</h2>
-    <div id="documentList">Loading...</div>
-  </div>
-
-  <div class="card">
-    <h2>Project Photos</h2>
-    <div id="photoGallery">Loading...</div>
-  </div>
-
-  <div class="card">
-    <h2>Your Payments</h2>
-    <div id="paymentList">Loading...</div>
-  </div>
-
-  <button id="logoutBtn">Logout</button>
-
-  <div class="page-end"></div>
 
   <script type="module">
-
-    /* ---------------------------------------------------------
-       FIREBASE IMPORTS
-    --------------------------------------------------------- */
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    
+    import { auth, db } from "./global.js";
     import {
-      getAuth,
       onAuthStateChanged,
       signOut
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     import {
-      getFirestore,
+      doc,
+      getDoc,
       collection,
       getDocs,
       query,
       where
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    /* ---------------------------------------------------------
-       FIREBASE INIT
-    --------------------------------------------------------- */
-    const firebaseConfig = {
-      apiKey: "AIzaSyB0Rj0mJmvfG_iK6ZGTl_UgiTCv8J_Y1Dv0",
-      authDomain: "construction-management-f48cb.firebaseapp.com",
-      projectId: "construction-management-f48cb",
-      storageBucket: "construction-management-f48cb.appspot.com",
-      messagingSenderId: "1013804592434",
-      appId: "1:1013804592434:web:79226b78462dbfbd519f2b"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    let projectId = null; // Set after loading project
-
-    /* ---------------------------------------------------------
-       LOGOUT
-    --------------------------------------------------------- */
-    async function logout() {
+    /* -------- LOGOUT -------- */
+    document.getElementById("logoutBtn").onclick = async () => {
       await signOut(auth);
       window.location.href = "index.html";
-    }
+    };
 
-    /* ---------------------------------------------------------
-       LOAD CUSTOMER PROJECT
-    --------------------------------------------------------- */
-    async function loadProject(user) {
-      const snap = await getDocs(
-        query(
-          collection(db, "projects"),
-          where("customerId", "==", user.uid)
-        )
-      );
+    /* -------- AUTH -------- */
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) window.location.href = "index.html";
 
-      const box = document.getElementById("projectBox");
+      const u = await getDoc(doc(db, "users", user.uid));
+      const info = document.getElementById("info");
 
-      if (snap.empty) {
-        box.innerHTML = "No project found for your account.";
+      if (!u.exists() || u.data().role !== "customer") {
+        info.innerHTML = "Access denied.";
         return;
       }
 
-      snap.forEach(docSnap => {
-        const p = docSnap.data();
-        projectId = docSnap.id;
+      const userData = u.data();
 
-        box.innerHTML = `
-          <strong>${p.projectName}</strong><br>
-          Status: ${p.status}<br>
-          Start Date: ${p.startDate}<br>
-        `;
-      });
+      // Find the user's project
+      const q = query(collection(db, "projects"), where("customerId", "==", user.uid));
+      const snap = await getDocs(q);
 
-      loadDocuments();
-      loadPhotos();
-      loadPayments();
-    }
+      let projects = [];
+      snap.forEach(docSnap => projects.push(docSnap.id));
 
-    /* ---------------------------------------------------------
-       LOAD DOCUMENT VAULT
-    --------------------------------------------------------- */
-    async function loadDocuments() {
-      const list = document.getElementById("documentList");
-      list.innerHTML = "";
-
-      const snap = await getDocs(
-        collection(db, "projects", projectId, "documents")
-      );
-
-      if (snap.empty) {
-        list.innerHTML = "No documents uploaded yet.";
-        return;
-      }
-
-      snap.forEach(docSnap => {
-        const d = docSnap.data();
-
-        const div = document.createElement("div");
-        div.className = "document-card";
-
-        div.innerHTML = `
-          <div class="category-tag">${d.category}</div><br>
-          <strong>${d.fileName}</strong><br>
-          Uploaded: ${new Date(d.timestamp).toLocaleString()}<br><br>
-          <a href="${d.url}" target="_blank">
-            <button>View / Download</button>
-          </a>
-        `;
-
-        list.appendChild(div);
-      });
-    }
-
-    /* ---------------------------------------------------------
-       LOAD PHOTOS
-    --------------------------------------------------------- */
-    async function loadPhotos() {
-      const gallery = document.getElementById("photoGallery");
-      gallery.innerHTML = "";
-
-      const phasesSnap = await getDocs(
-        collection(db, "projects", projectId, "phases")
-      );
-
-      let found = false;
-
-      for (const phaseDoc of phasesSnap.docs) {
-        const phaseId = phaseDoc.id;
-
-        const photosSnap = await getDocs(
-          collection(db, "projects", projectId, "phases", phaseId, "photos")
-        );
-
-        photosSnap.forEach(photoDoc => {
-          found = true;
-
-          const url = photoDoc.data().url;
-          const img = document.createElement("img");
-          img.src = url;
-          img.className = "doc-thumbnail";
-
-          gallery.appendChild(img);
-        });
-      }
-
-      if (!found) {
-        gallery.innerHTML = "No photos yet.";
-      }
-    }
-
-    /* ---------------------------------------------------------
-       LOAD PAYMENTS
-    --------------------------------------------------------- */
-    async function loadPayments() {
-      const list = document.getElementById("paymentList");
-      list.innerHTML = "";
-
-      const snap = await getDocs(
-        collection(db, "projects", projectId, "payments")
-      );
-
-      if (snap.empty) {
-        list.innerHTML = "No payments recorded yet.";
-        return;
-      }
-
-      snap.forEach(docSnap => {
-        const p = docSnap.data();
-
-        const div = document.createElement("div");
-        div.className = "card";
-
-        div.innerHTML = `
-          Amount: $${p.amount}<br>
-          Date: ${p.date}<br>
-        `;
-
-        list.appendChild(div);
-      });
-    }
-
-    /* ---------------------------------------------------------
-       AUTH WATCHER
-    --------------------------------------------------------- */
-    onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        window.location.href = "index.html";
-        return;
-      }
-
-      loadProject(user);
+      info.innerHTML = `
+        <strong>Name:</strong> ${userData.name}<br>
+        <strong>Email:</strong> ${userData.email}<br>
+        <strong>Projects:</strong> ${projects.length ? projects.join(", ") : "None Assigned"}<br>
+      `;
     });
-
-    document.getElementById("logoutBtn").addEventListener("click", logout);
   </script>
 
 </body>
