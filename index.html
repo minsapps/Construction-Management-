@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Construction Management — Login</title>
+  <title>Construction Management – Login</title>
   <link rel="stylesheet" href="style.css">
 </head>
 
@@ -28,9 +28,9 @@
 
       <label>User Role:</label>
       <select id="newRole">
+          <option value="admin">Admin</option>
           <option value="customer">Customer</option>
           <option value="subcontractor">Subcontractor</option>
-          <option value="admin">Admin</option>
       </select>
 
       <button id="createAccountBtn">Create Account</button>
@@ -38,123 +38,63 @@
   </div>
 
   <script type="module">
-
-    /* --------------------------------------
-        FIREBASE IMPORTS
-    -------------------------------------- */
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { app, auth, db } from "./global.js";
     import { 
-      getAuth, 
-      createUserWithEmailAndPassword, 
       signInWithEmailAndPassword, 
+      createUserWithEmailAndPassword,
       onAuthStateChanged 
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     import { 
-      getFirestore, 
-      setDoc, 
       doc, 
+      setDoc, 
       getDoc 
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    /* --------------------------------------
-        FIREBASE CONFIG
-    -------------------------------------- */
-    const firebaseConfig = {
-      apiKey: "AIzaSyB7GclJLT79eSM0WAYAcWSYm-VMYTbJFPk",
-      authDomain: "construction-management-f48cb.firebaseapp.com",
-      projectId: "construction-management-f48cb",
-      storageBucket: "construction-management-f48cb.appspot.com",
-      messagingSenderId: "1013804592434",
-      appId: "1:1013804592434:web:79226b78462dbfbd519f2b"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    /* --------------------------------------
-        CREATE ACCOUNT
-    -------------------------------------- */
-    async function createAccount() {
+    document.getElementById("createAccountBtn").addEventListener("click", async () => {
       const name = document.getElementById("newName").value;
       const email = document.getElementById("newEmail").value;
       const password = document.getElementById("newPassword").value;
       const role = document.getElementById("newRole").value;
 
-      if (!name || !email || !password) {
-        alert("Please fill out all account fields.");
-        return;
-      }
-
       try {
-        // Create Firebase Auth user
         const cred = await createUserWithEmailAndPassword(auth, email, password);
-
-        // Store user profile in Firestore USERS collection
         await setDoc(doc(db, "users", cred.user.uid), {
           name,
           email,
           role,
-          projects: [] // empty list for now
+          projects: []
         });
-
         document.getElementById("createStatus").innerHTML = "Account created!";
-      } catch (err) {
-        alert("Create Account Error: " + err.message);
+      } catch (e) {
+        alert(e.message);
       }
-    }
+    });
 
-    /* --------------------------------------
-        LOGIN
-    -------------------------------------- */
-    async function login() {
+    document.getElementById("loginBtn").addEventListener("click", async () => {
       const email = document.getElementById("loginEmail").value;
       const password = document.getElementById("loginPassword").value;
 
       try {
         await signInWithEmailAndPassword(auth, email, password);
-
         document.getElementById("loginStatus").innerHTML = "Logging in...";
-
-      } catch (err) {
-        alert("Login Error: " + err.message);
-      }
-    }
-
-    /* --------------------------------------
-        REDIRECT BASED ON USER ROLE
-    -------------------------------------- */
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) return; // no one logged in yet
-
-      // Get role from Firestore
-      const userDoc = await getDoc(doc(db, "users", user.uid));
-
-      if (!userDoc.exists()) {
-        alert("User profile missing. Contact admin.");
-        return;
-      }
-
-      const data = userDoc.data();
-
-      if (data.role === "admin") {
-        window.location.href = "admin.html";
-      } 
-      else if (data.role === "customer") {
-        window.location.href = "customer-dashboard.html";
-      }
-      else if (data.role === "subcontractor") {
-        window.location.href = "sub-dashboard.html";
+      } catch (e) {
+        alert(e.message);
       }
     });
 
-    /* --------------------------------------
-        EVENT LISTENERS
-    -------------------------------------- */
-    document.getElementById("loginBtn").addEventListener("click", login);
-    document.getElementById("createAccountBtn").addEventListener("click", createAccount);
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) return;
 
+      const snap = await getDoc(doc(db, "users", user.uid));
+      if (!snap.exists()) return;
+
+      const role = snap.data().role;
+
+      if (role === "admin") window.location.href = "admin.html";
+      if (role === "customer") window.location.href = "customer-dashboard.html";
+      if (role === "subcontractor") window.location.href = "sub-dashboard.html";
+    });
   </script>
 
 </body>
