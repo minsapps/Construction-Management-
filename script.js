@@ -1,6 +1,6 @@
 // ---------- FIREBASE CONFIG (NEW WORKING ONE) ----------
 var firebaseConfig = {
-    apiKey: "AIzaSyB0QjmJmvfG_iK62GTL_UgiTcv8J_Y1Dv0",
+    apiKey: "AIzaSyB7GclJLT79eSM0WAYAcWSYm-VMYTbJFPk",
     authDomain: "construction-management-f48cb.firebaseapp.com",
     projectId: "construction-management-f48cb",
     storageBucket: "construction-management-f48cb.appspot.com",
