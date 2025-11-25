@@ -1,253 +1,214 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Project Phases</title>
+  <link rel="stylesheet" href="style.css">
 
-  <!-- Construction Theme -->
   <style>
     body {
+      background: #f5f7fa;
       font-family: Arial, sans-serif;
       margin: 0;
-      background: #f4f4f4;
+      padding: 0;
     }
 
-    .navbar {
-      background: #003366; /* Dark Blue */
-      color: white;
-      padding: 15px;
-      font-size: 20px;
-      font-weight: bold;
+    .top-header {
+      background: #0B2A52;
+      padding: 18px;
       text-align: center;
+      color: white;
+      font-size: 26px;
       letter-spacing: 1px;
+      font-weight: bold;
     }
 
     .container {
+      width: 90%;
       max-width: 900px;
-      margin: 30px auto;
-      padding: 20px;
+      margin: 20px auto;
     }
 
-    /* Progress Bar */
-    .progress-box {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      margin-bottom: 25px;
-    }
-
-    .progress-label {
+    .section-title {
+      font-size: 20px;
       font-weight: bold;
       margin-bottom: 10px;
-      font-size: 18px;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 25px;
+      background: #d9d9d9;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 25px;
     }
 
     .progress-bar {
-      width: 100%;
-      background: #ddd;
-      border-radius: 20px;
-      height: 25px;
-      overflow: hidden;
-    }
-
-    .progress-fill {
       height: 100%;
+      background: #0076ff;
       width: 0%;
-      background: #FFC107; /* Yellow from logo */
-      transition: 0.5s;
+      transition: width 0.4s ease-in-out;
     }
 
-    /* Add Phase Panel */
-    .panel {
+    .card {
       background: white;
       padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      margin-bottom: 25px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0px 0px 8px rgba(0,0,0,0.15);
     }
 
-    .panel h2 {
-      margin-top: 0;
+    select, input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
     }
 
-    .panel input, .panel select, .panel button {
+    button {
       width: 100%;
       padding: 12px;
-      margin-top: 10px;
-      font-size: 16px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-    }
-
-    .panel button {
-      background: #003366;
+      background: #0B2A52;
+      border: none;
       color: white;
-      font-weight: bold;
+      border-radius: 6px;
       cursor: pointer;
+      font-size: 15px;
+      font-weight: bold;
     }
 
-    /* Phase Cards */
     .phase-card {
-      background: white;
       padding: 15px;
       border-radius: 10px;
-      margin-bottom: 15px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      border-left: 6px solid #FFC107;
+      margin-bottom: 12px;
+      background: #e8eef7;
+      border-left: 7px solid #0B2A52;
     }
 
-    .phase-header {
-      font-size: 18px;
+    .phase-status {
       font-weight: bold;
-      margin-bottom: 5px;
-      color: #222;
+      margin-top: 5px;
     }
 
-    .status {
-      font-size: 14px;
-      font-weight: bold;
-      display: inline-block;
-      padding: 5px 10px;
-      border-radius: 6px;
-      color: white;
-    }
+    .status-pending { color: #DAA520; }
+    .status-progress { color: #0080ff; }
+    .status-complete { color: #0AA80A; }
 
-    .pending { background: #999; }
-    .in-progress { background: #003366; }
-    .complete { background: #28a745; }
-
-    .btn-small {
-      margin-top: 10px;
-      background: #FFC107;
-      color: black;
-      border: none;
-      padding: 8px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-
-    .btn-small:hover {
-      opacity: 0.8;
-    }
   </style>
 </head>
-
 <body>
-  <div class="navbar">Project Phases</div>
+
+  <div class="top-header">PROJECT PHASES</div>
 
   <div class="container">
-    <!-- PROGRESS BAR -->
-    <div class="progress-box">
-      <div class="progress-label">Overall Progress</div>
-      <div class="progress-bar">
-        <div id="progressFill" class="progress-fill"></div>
-      </div>
+
+    <div class="section-title">Overall Progress</div>
+    <div class="progress-bar-container">
+      <div id="overallProgress" class="progress-bar"></div>
     </div>
 
-    <!-- ADD / UPDATE PHASE -->
-    <div class="panel">
-      <h2>Add / Update Phase</h2>
-      <input id="phaseName" placeholder="Phase Name (ex: Demolition)">
-      
+    <div class="card">
+      <div class="section-title">Add / Update Phase</div>
+
+      <input id="phaseName" placeholder="Phase Name (e.g., Demolition)">
       <select id="phaseStatus">
         <option value="pending">Pending</option>
         <option value="in-progress">In Progress</option>
-        <option value="complete">Complete</option>
+        <option value="complete">Completed</option>
       </select>
 
-      <button onclick="addOrUpdatePhase()">Save Phase</button>
+      <button id="savePhaseBtn">Save Phase</button>
     </div>
 
-    <!-- LIST OF PHASES -->
+    <div class="section-title">Existing Phases</div>
     <div id="phaseList"></div>
+
   </div>
 
-  <!-- FIREBASE -->
+  <!-- Load Firebase + DB -->
+  <script type="module" src="database.js"></script>
+
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, doc, setDoc, getDocs } 
-      from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyB7GclJLT79eSM0WAYAcWSYm-VMYTbJFPk",
-      authDomain: "construction-management-f48cb.firebaseapp.com",
-      projectId: "construction-management-f48cb",
-      storageBucket: "construction-management-f48cb.appspot.com",
-      messagingSenderId: "1013804592434",
-      appId: "1:1013804592434:web:79226b78462dbfbd519f2b"
-    };
+    import {
+      collection,
+      addDoc,
+      updateDoc,
+      doc,
+      getDocs,
+      query
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    // Get projectId from URL
     const urlParams = new URLSearchParams(window.location.search);
     const projectId = urlParams.get("projectId");
 
+    const phaseList = document.getElementById("phaseList");
+    const progressBar = document.getElementById("overallProgress");
+
+    /* -------------------------------------
+        LOAD PHASES
+    --------------------------------------*/
     async function loadPhases() {
-      const listBox = document.getElementById("phaseList");
-      listBox.innerHTML = "";
+      phaseList.innerHTML = "Loading...";
 
-      const snap = await getDocs(collection(db, "projects", projectId, "phases"));
+      const q = query(collection(db, "projects", projectId, "phases"));
+      const snap = await getDocs(q);
 
+      let html = "";
       let total = 0;
-      let completed = 0;
+      let done = 0;
 
       snap.forEach(docSnap => {
         total++;
-        const phase = docSnap.data();
-        if (phase.status === "complete") completed++;
 
-        const card = document.createElement("div");
-        card.className = "phase-card";
+        const p = docSnap.data();
+        const id = docSnap.id;
 
-        card.innerHTML = `
-          <div class="phase-header">${phase.name}</div>
-          <span class="status ${phase.status}">
-            ${phase.status.replace("-", " ").toUpperCase()}
-          </span><br>
-          <button class="btn-small" onclick="prefill('${docSnap.id}', '${phase.name}', '${phase.status}')">
-            Edit Phase
-          </button>
+        if (p.status === "complete") done++;
+
+        html += `
+          <div class="phase-card">
+            <div><strong>${p.name}</strong></div>
+            <div class="phase-status status-${p.status.replace(" ", "-")}">
+              ${p.status}
+            </div>
+          </div>
         `;
-
-        listBox.appendChild(card);
       });
 
-      // Update progress
-      if (total > 0) {
-        const percent = Math.round((completed / total) * 100);
-        document.getElementById("progressFill").style.width = percent + "%";
-      }
-    }
+      phaseList.innerHTML = html || "No phases yet.";
 
-    function prefill(id, name, status) {
-      window.editId = id;
-      document.getElementById("phaseName").value = name;
-      document.getElementById("phaseStatus").value = status;
-    }
-
-    async function addOrUpdatePhase() {
-      const name = document.getElementById("phaseName").value;
-      const status = document.getElementById("phaseStatus").value;
-
-      if (!name) return alert("Enter a phase name!");
-
-      const id = window.editId || name.replace(/\s+/g, "_");
-
-      await setDoc(doc(db, "projects", projectId, "phases", id), {
-        name,
-        status
-      });
-
-      window.editId = null;
-      document.getElementById("phaseName").value = "";
-      loadPhases();
+      const percent = total === 0 ? 0 : Math.round((done / total) * 100);
+      progressBar.style.width = percent + "%";
     }
 
     loadPhases();
+
+    /* -------------------------------------
+        SAVE / UPDATE PHASE
+    --------------------------------------*/
+    document.getElementById("savePhaseBtn").addEventListener("click", async () => {
+      const name = document.getElementById("phaseName").value.trim();
+      const status = document.getElementById("phaseStatus").value;
+
+      if (!name) {
+        alert("Enter phase name.");
+        return;
+      }
+
+      await addDoc(collection(db, "projects", projectId, "phases"), {
+        name,
+        status,
+        timestamp: Date.now()
+      });
+
+      document.getElementById("phaseName").value = "";
+      loadPhases();
+    });
+
   </script>
 
 </body>
