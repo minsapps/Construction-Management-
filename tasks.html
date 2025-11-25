@@ -2,158 +2,121 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Manage Tasks</title>
+  <title>Project Tasks</title>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
   <div class="navbar">
-    Construction Management App — Tasks
+    Project Tasks
+    <button id="logoutBtn" class="logoutBtn">Logout</button>
   </div>
 
-  <h1>Phase Tasks</h1>
+  <h1 id="projectTitle">Project Tasks</h1>
 
+  <!-- TASK LIST -->
   <div class="card">
-    <h2>Add Task</h2>
-    <input id="taskName" placeholder="Task Name (e.g., Install Gas Line)">
-    <input id="taskContractor" placeholder="Contractor User ID">
-    <label>Due Date:</label>
-    <input id="taskDueDate" type="date">
-    <button id="addTaskBtn">Add Task</button>
-    <p id="taskStatus"></p>
-  </div>
-
-  <div class="card">
-    <h2>Existing Tasks</h2>
+    <h2>All Tasks</h2>
     <div id="taskList">Loading...</div>
   </div>
 
-  <button id="backBtn">Back</button>
+  <!-- UPDATE TASK (ADMIN ONLY) -->
+  <div class="card" id="adminSection" style="display:none;">
+    <h2>Update Task Status</h2>
+    <input id="taskId" placeholder="Task ID">
+    <select id="taskStatus">
+      <option value="pending">Pending</option>
+      <option value="in-progress">In Progress</option>
+      <option value="complete">Complete</option>
+    </select>
 
-  <div class="page-end"></div>
+    <button id="updateBtn">Update Task</button>
+    <p id="updateStatus"></p>
+  </div>
 
   <script type="module">
-    /* ---------------------------------------------------------
-       FIREBASE IMPORTS
-    --------------------------------------------------------- */
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-
+    import { auth, db } from "./global.js";
     import {
-      getAuth,
-      onAuthStateChanged
+      onAuthStateChanged,
+      signOut
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     import {
-      getFirestore,
-      collection,
-      addDoc,
-      getDocs
+      doc,
+      getDoc,
+      updateDoc,
+      getDocs,
+      query,
+      where,
+      collection
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    /* ---------------------------------------------------------
-       FIREBASE INIT
-    --------------------------------------------------------- */
-    const firebaseConfig = {
-      apiKey: "AIzaSyB0Rj0mJmvfG_iK6ZGTl_UgiTCv8J_Y1Dv0",
-      authDomain: "construction-management-f48cb.firebaseapp.com",
-      projectId: "construction-management-f48cb",
-      storageBucket: "construction-management-f48cb.appspot.com",
-      messagingSenderId: "1013804592434",
-      appId: "1:1013804592434:web:79226b78462dbfbd519f2b"
+    /* -------- LOGOUT -------- */
+    document.getElementById("logoutBtn").onclick = async () => {
+      await signOut(auth);
+      window.location.href = "index.html";
     };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+    /* -------- PROJECT ID -------- */
+    const params = new URLSearchParams(window.location.search);
+    const projectId = params.get("projectId");
 
-    /* ---------------------------------------------------------
-       URL PARAMS
-    --------------------------------------------------------- */
-    const url = new URL(window.location.href);
-    const projectId = url.searchParams.get("projectId");
-    const phaseId = url.searchParams.get("phaseId");
+    let userRole = "";
 
-    if (!projectId || !phaseId) {
-      alert("Missing projectId or phaseId in URL");
-      window.location.href = "admin.html";
-    }
+    /* -------- AUTH + LOAD TASKS -------- */
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) return window.location.href = "index.html";
 
-    /* ---------------------------------------------------------
-       LOAD TASKS
-    --------------------------------------------------------- */
-    async function loadTasks() {
-      const container = document.getElementById("taskList");
-      container.innerHTML = "";
+      const u = await getDoc(doc(db, "users", user.uid));
+      userRole = u.data().role;
 
-      const snap = await getDocs(
-        collection(db, "projects", projectId, "phases", phaseId, "tasks")
-      );
-
-      if (snap.empty) {
-        container.innerHTML = "No tasks yet.";
-        return;
+      if (userRole === "admin") {
+        document.getElementById("adminSection").style.display = "block";
       }
+
+      loadTasks();
+    });
+
+    /* -------- LOAD TASKS -------- */
+    async function loadTasks() {
+      const list = document.getElementById("taskList");
+      list.innerHTML = "Loading...";
+
+      const q = query(collection(db, "tasks"), where("projectId", "==", projectId));
+      const snap = await getDocs(q);
+      list.innerHTML = "";
 
       snap.forEach(docSnap => {
         const t = docSnap.data();
 
         const div = document.createElement("div");
-        div.className = "card";
+        div.className = "innerCard";
 
         div.innerHTML = `
-          <strong>${t.taskName}</strong><br>
+          <strong>${t.title}</strong><br>
+          Task ID: ${docSnap.id}<br>
+          Phase: ${t.phase || "N/A"}<br>
           Assigned To: ${t.assignedTo}<br>
-          Due Date: ${t.dueDate}<br>
           Status: ${t.status}<br>
+          Due: ${t.due || "N/A"}<br>
         `;
-
-        container.appendChild(div);
+        list.appendChild(div);
       });
     }
 
-    /* ---------------------------------------------------------
-       ADD TASK
-    --------------------------------------------------------- */
-    async function addTask() {
-      const name = document.getElementById("taskName").value;
-      const contractor = document.getElementById("taskContractor").value;
-      const due = document.getElementById("taskDueDate").value;
+    /* -------- UPDATE TASK -------- */
+    document.getElementById("updateBtn").onclick = async () => {
+      const id = document.getElementById("taskId").value;
+      const status = document.getElementById("taskStatus").value;
 
-      if (!name || !contractor || !due) {
-        alert("All fields are required.");
-        return;
-      }
+      if (!id) return alert("Enter task ID.");
 
-      await addDoc(
-        collection(db, "projects", projectId, "phases", phaseId, "tasks"),
-        {
-          taskName: name,
-          assignedTo: contractor,
-          dueDate: due,
-          status: "not-started"
-        }
-      );
+      await updateDoc(doc(db, "tasks", id), { status });
 
-      document.getElementById("taskStatus").innerHTML = "Task added!";
+      document.getElementById("updateStatus").innerHTML = "Task Updated!";
       loadTasks();
-    }
-
-    /* ---------------------------------------------------------
-       AUTH GUARD
-    --------------------------------------------------------- */
-    onAuthStateChanged(auth, user => {
-      if (!user) {
-        window.location.href = "index.html";
-        return;
-      }
-      loadTasks();
-    });
-
-    /* ---------------------------------------------------------
-       EVENTS
-    --------------------------------------------------------- */
-    document.getElementById("addTaskBtn").addEventListener("click", addTask);
-    document.getElementById("backBtn").addEventListener("click", () => window.history.back());
+    };
   </script>
 
 </body>
