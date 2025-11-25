@@ -2,155 +2,124 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Project Payments</title>
+  <title>Payments</title>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
   <div class="navbar">
-    Construction Management App — Payments
+    Payments
+    <button id="logoutBtn" class="logoutBtn">Logout</button>
   </div>
 
-  <h1>Manage Payments</h1>
+  <h1 id="title">Payments</h1>
 
+  <!-- Payment List -->
   <div class="card">
-    <h2>Add Payment</h2>
-    <input id="amount" type="number" placeholder="Payment Amount (e.g., 5000)">
-    <label>Date:</label>
-    <input id="date" type="date">
-    <button id="addPaymentBtn">Add Payment</button>
-    <p id="paymentStatus"></p>
-  </div>
-
-  <div class="card">
-    <h2>Existing Payments</h2>
+    <h2>Payment History</h2>
     <div id="paymentList">Loading...</div>
   </div>
 
-  <button id="backBtn">Back</button>
-
-  <div class="page-end"></div>
+  <!-- Add Payment (Admin Only) -->
+  <div class="card" id="adminAddSection" style="display:none;">
+    <h2>Add Payment</h2>
+    <input id="payAmount" placeholder="Amount">
+    <input id="payNote" placeholder="Payment Note (optional)">
+    <button id="addPaymentBtn">Add Payment</button>
+    <p id="addStatus"></p>
+  </div>
 
   <script type="module">
-
-    /* ---------------------------------------------------------
-       FIREBASE IMPORTS
-    --------------------------------------------------------- */
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-
+    import { auth, db } from "./global.js";
     import {
-      getAuth,
-      onAuthStateChanged
+      onAuthStateChanged,
+      signOut
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     import {
-      getFirestore,
-      collection,
+      doc,
+      getDoc,
       addDoc,
-      getDocs
+      getDocs,
+      collection
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    /* ---------------------------------------------------------
-       FIREBASE INIT
-    --------------------------------------------------------- */
-    const firebaseConfig = {
-      apiKey: "AIzaSyB0Rj0mJmvfG_iK6ZGTl_UgiTCv8J_Y1Dv0",
-      authDomain: "construction-management-f48cb.firebaseapp.com",
-      projectId: "construction-management-f48cb",
-      storageBucket: "construction-management-f48cb.appspot.com",
-      messagingSenderId: "1013804592434",
-      appId: "1:1013804592434:web:79226b78462dbfbd519f2b"
+    /* -------- LOGOUT -------- */
+    document.getElementById("logoutBtn").onclick = async () => {
+      await signOut(auth);
+      window.location.href = "index.html";
     };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+    /* -------- PROJECT ID FROM URL -------- */
+    const params = new URLSearchParams(window.location.search);
+    const projectId = params.get("projectId");
 
-    /* ---------------------------------------------------------
-       URL PARAM
-    --------------------------------------------------------- */
-    const url = new URL(window.location.href);
-    const projectId = url.searchParams.get("projectId");
+    let userRole = "";
 
-    if (!projectId) {
-      alert("Missing projectId in URL");
-      window.location.href = "admin.html";
-    }
+    /* -------- AUTH + LOAD PAYMENTS -------- */
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) window.location.href = "index.html";
 
-    /* ---------------------------------------------------------
-       LOAD PAYMENTS
-    --------------------------------------------------------- */
-    async function loadPayments() {
-      const container = document.getElementById("paymentList");
-      container.innerHTML = "";
+      // Get user role
+      const u = await getDoc(doc(db, "users", user.uid));
+      userRole = u.data().role;
 
-      const snap = await getDocs(
-        collection(db, "projects", projectId, "payments")
-      );
-
-      if (snap.empty) {
-        container.innerHTML = "No payments recorded yet.";
-        return;
-      }
-
-      snap.forEach(docSnap => {
-        const p = docSnap.data();
-
-        const div = document.createElement("div");
-        div.className = "card";
-
-        div.innerHTML = `
-          <strong>$${p.amount}</strong><br>
-          Date: ${p.date}<br>
-        `;
-
-        container.appendChild(div);
-      });
-    }
-
-    /* ---------------------------------------------------------
-       ADD PAYMENT
-    --------------------------------------------------------- */
-    async function addPayment() {
-      const amount = document.getElementById("amount").value;
-      const date = document.getElementById("date").value;
-
-      if (!amount || !date) {
-        alert("Both amount and date are required.");
-        return;
-      }
-
-      await addDoc(
-        collection(db, "projects", projectId, "payments"),
-        {
-          amount: Number(amount),
-          date: date,
-          timestamp: new Date().toISOString()
-        }
-      );
-
-      document.getElementById("paymentStatus").innerHTML = "Payment added!";
-      loadPayments();
-    }
-
-    /* ---------------------------------------------------------
-       AUTH GUARD
-    --------------------------------------------------------- */
-    onAuthStateChanged(auth, user => {
-      if (!user) {
-        window.location.href = "index.html";
-        return;
+      if (userRole === "admin") {
+        document.getElementById("adminAddSection").style.display = "block";
       }
 
       loadPayments();
     });
 
-    /* ---------------------------------------------------------
-       EVENTS
-    --------------------------------------------------------- */
-    document.getElementById("addPaymentBtn").addEventListener("click", addPayment);
-    document.getElementById("backBtn").addEventListener("click", () => window.history.back());
+    /* -------- LOAD PAYMENTS -------- */
+    async function loadPayments() {
+      const list = document.getElementById("paymentList");
+      list.innerHTML = "Loading...";
 
+      const snap = await getDocs(collection(db, "projects", projectId, "payments"));
+      list.innerHTML = "";
+
+      let totalPaid = 0;
+
+      snap.forEach(docSnap => {
+        const p = docSnap.data();
+        totalPaid += Number(p.amount);
+
+        const div = document.createElement("div");
+        div.className = "innerCard";
+
+        div.innerHTML = `
+          <strong>$${p.amount}</strong><br>
+          Note: ${p.note || "None"}<br>
+          Date: ${p.date}<br>
+        `;
+
+        list.appendChild(div);
+      });
+
+      const summary = document.createElement("div");
+      summary.className = "innerCard";
+      summary.innerHTML = `<strong>Total Paid: $${totalPaid}</strong>`;
+      list.appendChild(summary);
+    }
+
+    /* -------- ADD PAYMENT (ADMIN ONLY) -------- */
+    document.getElementById("addPaymentBtn").onclick = async () => {
+      const amt = document.getElementById("payAmount").value;
+      const note = document.getElementById("payNote").value;
+
+      if (!amt) return alert("Enter amount.");
+
+      await addDoc(collection(db, "projects", projectId, "payments"), {
+        amount: amt,
+        note,
+        date: new Date().toISOString()
+      });
+
+      document.getElementById("addStatus").innerHTML = "Payment Added!";
+      loadPayments();
+    };
   </script>
 
 </body>
