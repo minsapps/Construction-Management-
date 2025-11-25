@@ -9,187 +9,163 @@
 <body>
 
   <div class="navbar">
-    Construction Management App — Admin
+    Admin Dashboard
+    <button id="logoutBtn" class="logoutBtn">Logout</button>
   </div>
 
   <h1>Admin Dashboard</h1>
 
   <!-- CREATE PROJECT -->
   <div class="card">
-    <h2>Create New Project</h2>
-    <input id="projectName" placeholder="Project Name (e.g., 123 Main St)">
-    <input id="customerId" placeholder="Customer User ID">
+    <h2>Create Project</h2>
+    <input id="pName" placeholder="Project Name (ex: 123 Main St)">
+    <input id="pCustomer" placeholder="Customer User ID">
     <button id="createProjectBtn">Create Project</button>
     <p id="createProjectStatus"></p>
   </div>
 
-  <!-- QUICK DOCUMENT UPLOAD -->
+  <!-- QUICK DOC UPLOAD -->
   <div class="card">
     <h2>Quick Upload Document</h2>
     <input id="docProjectId" placeholder="Project ID">
 
-    <label>Select Category:</label>
+    <label>Category</label>
     <select id="docCategory">
       <option value="Permit">Permit</option>
-      <option value="Certificate of Occupancy (CO)">Certificate of Occupancy (CO)</option>
-      <option value="Architectural Plans">Architectural Plans</option>
+      <option value="CO">Certificate of Occupancy</option>
       <option value="Survey">Survey</option>
+      <option value="Plans">Plans</option>
       <option value="Insurance">Insurance</option>
-      <option value="Inspection Reports">Inspection Reports</option>
-      <option value="Contracts & Change Orders">Contracts & Change Orders</option>
-      <option value="Engineer Reports">Engineer Reports</option>
-      <option value="Zoning / Variances">Zoning / Variances</option>
-      <option value="Final Walkthrough Sheet">Final Walkthrough Sheet</option>
-      <option value="Final Photos">Final Photos</option>
-      <option value="Closing Documents">Closing Documents</option>
+      <option value="Inspection">Inspection Report</option>
+      <option value="Contracts">Contracts / Change Orders</option>
+      <option value="Engineer">Engineer Report</option>
+      <option value="Zoning">Zoning / Variances</option>
+      <option value="Closing">Closing Documents</option>
       <option value="Custom">Custom</option>
     </select>
 
-    <input id="customCategory" placeholder="Custom Category Name (if selected)">
+    <input id="docCustom" placeholder="Custom Category (if chosen)">
     <input type="file" id="docFile">
+
     <button id="uploadDocBtn">Upload Document</button>
     <p id="docUploadStatus"></p>
 
-    <button onclick="window.location.href='documentUpload.html'">
-      Go to Full Document Manager
-    </button>
+    <button onclick="window.location.href='document-upload.html'">Full Document Manager</button>
   </div>
 
   <!-- PROJECT LIST -->
   <div class="card">
-    <h2>Projects</h2>
+    <h2>All Projects</h2>
     <div id="projectList">Loading...</div>
   </div>
 
-  <button id="logoutBtn">Logout</button>
-
   <script type="module">
+    import { auth, db, storage } from "./global.js";
+    import { 
+      onAuthStateChanged, 
+      signOut 
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+    import {
+      collection,
+      addDoc,
+      getDocs,
+      doc,
+      setDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyB7GclJLT79eSM0WAYAcWSYm-VMYTbJFPk",
-      authDomain: "construction-management-f48cb.firebaseapp.com",
-      projectId: "construction-management-f48cb",
-      storageBucket: "construction-management-f48cb.appspot.com",
-      messagingSenderId: "1013804592434",
-      appId: "1:1013804592434:web:79226b78462dbfbd519f2b"
+    import {
+      ref,
+      uploadBytes,
+      getDownloadURL
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
+    /* -------- AUTH PROTECT -------- */
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) window.location.href = "index.html";
+      loadProjects();
+    });
+
+    document.getElementById("logoutBtn").onclick = async () => {
+      await signOut(auth);
+      window.location.href = "index.html";
     };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const storage = getStorage(app);
-
+    /* -------- LOAD PROJECTS -------- */
     async function loadProjects() {
-      const container = document.getElementById("projectList");
-      container.innerHTML = "";
+      const list = document.getElementById("projectList");
+      list.innerHTML = "Loading...";
 
       const snap = await getDocs(collection(db, "projects"));
-
-      if (snap.empty) {
-        container.innerHTML = "No projects found.";
-        return;
-      }
+      list.innerHTML = "";
 
       snap.forEach(docSnap => {
         const p = docSnap.data();
+        const id = docSnap.id;
 
         const div = document.createElement("div");
-        div.className = "card";
+        div.className = "innerCard";
 
         div.innerHTML = `
           <strong>${p.projectName}</strong><br>
-          Project ID: ${docSnap.id}<br>
-          Customer: ${p.customerId}<br>
-          Status: ${p.status}<br><br>
+          Project ID: ${id}<br>
+          Customer: ${p.customerId}<br><br>
 
-          <button onclick="window.location.href='phases.html?projectId=${docSnap.id}'">Phases</button>
-          <button onclick="window.location.href='payments.html?projectId=${docSnap.id}'">Payments</button>
-          <button onclick="window.location.href='photos.html?projectId=${docSnap.id}'">Photos</button>
-          <button onclick="window.location.href='documentUpload.html?projectId=${docSnap.id}'">Documents</button>
+          <button onclick="window.location.href='phases.html?projectId=${id}'">Phases</button>
+          <button onclick="window.location.href='payments.html?projectId=${id}'">Payments</button>
+          <button onclick="window.location.href='photos.html?projectId=${id}'">Photos</button>
+          <button onclick="window.location.href='document-upload.html?projectId=${id}'">Documents</button>
         `;
 
-        container.appendChild(div);
+        list.appendChild(div);
       });
     }
 
-    async function createProject() {
-      const name = document.getElementById("projectName").value;
-      const customerId = document.getElementById("customerId").value;
+    /* -------- CREATE PROJECT -------- */
+    document.getElementById("createProjectBtn").onclick = async () => {
+      const name = document.getElementById("pName").value;
+      const customerId = document.getElementById("pCustomer").value;
 
       if (!name || !customerId) {
-        alert("Enter both project name and customer ID.");
+        alert("Missing fields.");
         return;
       }
 
-      const newDoc = await addDoc(collection(db, "projects"), {
+      const refNew = await addDoc(collection(db, "projects"), {
         projectName: name,
         customerId,
         status: "in-progress",
         startDate: new Date().toISOString()
       });
 
-      document.getElementById("createProjectStatus").innerHTML = `Project created! ID: ${newDoc.id}`;
+      document.getElementById("createProjectStatus").innerHTML = `Created Project ID: ${refNew.id}`;
       loadProjects();
-    }
+    };
 
-    async function uploadDoc() {
-      const projectId = document.getElementById("docProjectId").value;
-      let category = document.getElementById("docCategory").value;
-      const custom = document.getElementById("customCategory").value;
+    /* -------- UPLOAD DOCUMENT -------- */
+    document.getElementById("uploadDocBtn").onclick = async () => {
+      const pId = document.getElementById("docProjectId").value;
+      let cat = document.getElementById("docCategory").value;
+      const custom = document.getElementById("docCustom").value;
       const file = document.getElementById("docFile").files[0];
+      if (!pId || !file) return alert("Missing info.");
 
-      if (!projectId || !file) {
-        alert("Project ID and file are required.");
-        return;
-      }
+      if (cat === "Custom") cat = custom;
 
-      if (category === "Custom") {
-        if (!custom) {
-          alert("Enter a custom category name.");
-          return;
-        }
-        category = custom;
-      }
+      const path = `documents/${pId}/${Date.now()}_${file.name}`;
+      const sRef = ref(storage, path);
+      await uploadBytes(sRef, file);
+      const url = await getDownloadURL(sRef);
 
-      const path = `documents/${projectId}/${Date.now()}_${file.name}`;
-      const storageRef = ref(storage, path);
-
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-
-      await addDoc(collection(db, "projects", projectId, "documents"), {
+      await addDoc(collection(db, "projects", pId, "documents"), {
         url,
+        category: cat,
         fileName: file.name,
-        category,
-        uploadedBy: auth.currentUser.uid,
-        timestamp: new Date().toISOString()
+        date: new Date().toISOString()
       });
 
-      document.getElementById("docUploadStatus").innerHTML = `Uploaded: ${file.name}`;
-    }
-
-    async function logout() {
-      await signOut(auth);
-      window.location.href = "index.html";
-    }
-
-    onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        window.location.href = "index.html";
-        return;
-      }
-      loadProjects();
-    });
-
-    document.getElementById("createProjectBtn").addEventListener("click", createProject);
-    document.getElementById("uploadDocBtn").addEventListener("click", uploadDoc);
-    document.getElementById("logoutBtn").addEventListener("click", logout);
-
+      document.getElementById("docUploadStatus").innerHTML = "Uploaded!";
+    };
   </script>
 
 </body>
