@@ -3,11 +3,116 @@
 <head>
   <meta charset="UTF-8">
   <title>Subcontractor Dashboard</title>
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<h1>Welcome, Subcontractor!</h1>
-<p>Upload your daily progress photos here. Full features coming next.</p>
+  <div class="navbar">
+    Subcontractor Dashboard
+    <button id="logoutBtn" class="logoutBtn">Logout</button>
+  </div>
+
+  <h1>Your Assigned Tasks</h1>
+
+  <div id="taskList" class="card">Loading...</div>
+
+  <h2>Upload Progress Photo</h2>
+  <div class="card">
+    <input id="photoProjectId" placeholder="Project ID">
+    <input id="photoPhase" placeholder="Phase (ex: Plumbing Rough)">
+    <input type="file" id="photoFile">
+    <button id="uploadBtn">Upload</button>
+    <p id="uploadStatus"></p>
+  </div>
+
+  <script type="module">
+    import { auth, db, storage } from "./global.js";
+    import { 
+      onAuthStateChanged, 
+      signOut 
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    import {
+      doc,
+      getDoc,
+      getDocs,
+      collection,
+      query,
+      where,
+      addDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    import {
+      ref,
+      uploadBytes,
+      getDownloadURL
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
+    /* -------- LOGOUT -------- */
+    document.getElementById("logoutBtn").onclick = async () => {
+      await signOut(auth);
+      window.location.href = "index.html";
+    };
+
+    /* -------- AUTH PROTECT + LOAD TASKS -------- */
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) return window.location.href = "index.html";
+
+      const uSnap = await getDoc(doc(db, "users", user.uid));
+      if (!uSnap.exists() || uSnap.data().role !== "subcontractor") {
+        alert("Access denied.");
+        return window.location.href = "index.html";
+      }
+
+      const q = query(collection(db, "tasks"), where("assignedTo", "==", user.uid));
+      const tSnap = await getDocs(q);
+
+      const list = document.getElementById("taskList");
+      list.innerHTML = "";
+
+      if (tSnap.empty) {
+        list.innerHTML = "No tasks assigned.";
+        return;
+      }
+
+      tSnap.forEach(docSnap => {
+        const task = docSnap.data();
+        const div = document.createElement("div");
+        div.className = "innerCard";
+        div.innerHTML = `
+          <strong>${task.title}</strong><br>
+          Project: ${task.projectId}<br>
+          Phase: ${task.phase}<br>
+          Status: ${task.status}<br>
+        `;
+        list.appendChild(div);
+      });
+    });
+
+    /* -------- UPLOAD PROGRESS PHOTO -------- */
+    document.getElementById("uploadBtn").onclick = async () => {
+      const pId = document.getElementById("photoProjectId").value;
+      const phase = document.getElementById("photoPhase").value;
+      const file = document.getElementById("photoFile").files[0];
+
+      if (!pId || !phase || !file) return alert("Missing fields!");
+
+      const path = `photos/${pId}/${Date.now()}_${file.name}`;
+      const r = ref(storage, path);
+
+      await uploadBytes(r, file);
+      const url = await getDownloadURL(r);
+
+      await addDoc(collection(db, "projects", pId, "photos"), {
+        url,
+        phase,
+        uploaded: new Date().toISOString()
+      });
+
+      document.getElementById("uploadStatus").innerHTML = "Uploaded!";
+    };
+  </script>
 
 </body>
 </html>
